@@ -10,7 +10,8 @@ jobs:
 
     steps:
       - checkout
-      - teak/terraform-install
+      - teak/terraform-install:
+          version: 1.0.4
 
 workflows:
   version: 2
