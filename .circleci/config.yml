@@ -75,7 +75,7 @@ workflows:
     jobs:
       - setup
       - build-develop:
-          context: AWS
+          context: AWS-Write
           requires:
             - setup
           filters:
@@ -91,7 +91,7 @@ workflows:
               only:
                 - develop
       - deploy-develop:
-          context: AWS
+          context: AWS-Write
           requires:
             - build-develop
           filters:
