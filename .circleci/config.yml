@@ -1,0 +1,19 @@
+version: 2.1
+
+orbs:
+  teak: teak/sdk-utils@dev:alpha
+
+jobs:
+  build:
+    docker:
+      - image: cimg/base:2021.04
+
+    steps:
+      - checkout
+      - teak/terraform-install
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build
