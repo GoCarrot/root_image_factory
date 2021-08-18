@@ -4,17 +4,95 @@ orbs:
   teak: teak/sdk-utils@dev:alpha
 
 jobs:
-  build:
+  setup:
+    docker:
+      - image: cimg/base:2021.04
+
+    steps:
+      - teak/terraform-install:
+          version: 1.0.5
+
+  build-develop:
     docker:
       - image: cimg/base:2021.04
 
     steps:
       - checkout
       - teak/terraform-install:
-          version: 1.0.4
+          version: 1.0.5
+      - teak/terraform-init:
+          path: "terraform"
+      - teak/terraform-plan:
+          workspace: "development"
+          path: "terraform"
+
+  build-production:
+    docker:
+      - image: cimg/base:2021.04
+
+    steps:
+      - checkout
+      - teak/terraform-install:
+          version: 1.0.5
+      - teak/terraform-init:
+          path: "terraform"
+      - teak/terraform-plan:
+          workspace: "production"
+          path: "terraform"
+
+  deploy-develop:
+    docker:
+      - image: cimg/base:2021.04
+
+    steps:
+      - checkout
+      - teak/terraform-install:
+          version: 1.0.5
+      - teak/terraform-init:
+          path: "terraform"
+      - teak/terraform-apply:
+          workspace: "development"
+          path: "terraform"
+
+  deploy-production:
+    docker:
+      - image: cimg/base:2021.04
+
+    steps:
+      - checkout
+      - teak/terraform-install:
+          version: 1.0.5
+      - teak/terraform-init:
+          path: "terraform"
+      - teak/terraform-apply:
+          workspace: "production"
+          path: "terraform"
+
 
 workflows:
   version: 2
   build:
     jobs:
-      - build
+      - setup
+      - build-develop:
+          requires:
+            - setup
+          filters:
+            branches:
+              only:
+                - develop
+      - hold-develop:
+          type: approval
+          requires:
+            - build-develop
+          filters:
+            branches:
+              only:
+                - develop
+      - deploy-develop:
+          requires:
+            - build-develop
+          filters:
+            branches:
+              only:
+                - develop
