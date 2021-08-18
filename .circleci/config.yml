@@ -93,7 +93,7 @@ workflows:
       - deploy-develop:
           context: AWS-Write
           requires:
-            - build-develop
+            - hold-develop
           filters:
             branches:
               only:
