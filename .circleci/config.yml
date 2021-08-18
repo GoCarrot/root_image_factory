@@ -75,6 +75,7 @@ workflows:
     jobs:
       - setup
       - build-develop:
+          context: AWS
           requires:
             - setup
           filters:
@@ -90,6 +91,7 @@ workflows:
               only:
                 - develop
       - deploy-develop:
+          context: AWS
           requires:
             - build-develop
           filters:
