@@ -78,6 +78,9 @@ workflows:
               only:
                 - develop
       - teak/packer-build:
+          pre-steps:
+            - run:
+                command: apt-get update && apt-get install -y ansible
           path: "packer"
           var: "region=us-east-1,environment=development"
           context: AWS-Write
