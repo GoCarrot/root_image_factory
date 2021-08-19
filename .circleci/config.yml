@@ -11,6 +11,8 @@ jobs:
     steps:
       - teak/terraform-install:
           version: 1.0.5
+      - teak/packer-install:
+          version: 1.7.4
 
   build-production:
     docker:
