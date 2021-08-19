@@ -1,0 +1,49 @@
+---
+- hosts: all
+
+  vars:
+    build_environment: production
+
+  pre_tasks:
+    - include_vars: "{{ item }}"
+      with_first_found:
+        - "vars_{{ build_environment }}.yml"
+        - "vars_default.yml"
+
+  tasks:
+    - name:  Install FAI Packages
+      become: yes
+      apt:
+        update_cache: yes
+        install_recommends: no
+        state: present
+        name:
+          - git
+          - ca-certificates
+          - debsums
+          - dosfstools
+          - fai-server
+          - fai-setup-storage
+          - make
+          - python3
+          - python3-libcloud
+          - python3-marshmallow
+          - python3-pytest
+          - python3-yaml
+          - qemu-utils
+          - udev
+
+    - name: Created Build Directory
+      become: yes
+      file:
+        path: /build
+        group: admin
+        owner: admin
+        mode: '755'
+        state: directory
+
+    - name: Clone Repo
+      git:
+        dest: /build/debian-cloud-images
+        repo: https://github.com/GoCarrot/debian-cloud-images.git
+        version: "{{ debian_cloud_images_branch }}"
