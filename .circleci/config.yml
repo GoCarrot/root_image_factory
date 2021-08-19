@@ -80,7 +80,7 @@ workflows:
       - teak/packer-build:
           pre-steps:
             - run:
-                command: sudo apt-get update && sudo apt-get install -y ansible
+                command: sudo apt-get update && sudo apt-get install -y ansible awscli
           path: "packer"
           var: "region=us-east-1,environment=development"
           artifact_path: packer/build
