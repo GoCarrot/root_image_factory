@@ -332,7 +332,6 @@ data "aws_iam_policy_document" "allow_vm_upload" {
   statement {
     effect    = "Allow"
     actions   = [
-      "s3:GetObject",
       "s3:PutObject",
       "s3:AbortMultipartUpload",
     ]
