@@ -292,6 +292,8 @@ resource "aws_s3_bucket" "local_vm" {
       days = 1
     }
   }
+
+  force_destroy = terraform.workspace == "development"
 }
 
 resource "aws_s3_bucket_public_access_block" "local_vm" {
