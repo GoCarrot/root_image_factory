@@ -77,3 +77,13 @@ workflows:
             branches:
               only:
                 - develop
+      - teak/packer-build:
+          path: "packer"
+          var: "region=us-east-1,environment=development"
+          context: AWS-Write
+          requires:
+            - teak/terraform-apply
+          filters:
+            branches:
+              only:
+                - develop
