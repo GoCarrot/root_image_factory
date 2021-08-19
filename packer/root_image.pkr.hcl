@@ -330,10 +330,9 @@ build {
     content {
       only = ["amazon-ebs.debian_${arch.key}"]
       inline = [
-        "rm ${path.root}/build/*",
         "aws s3 cp s3://${data.amazon-parameterstore.local_vm_bucket.value}/vmware_bullseye_vagrant_${arch.value}.vmdk.gz ${path.root}/build/vmware_bullseye_vagrant_${arch.value}.vmdk.gz",
-        "gunzip build/vmware_bullseye_vagrant_${arch.value}.vmdk.gz",
-        "cp vm_configs/vagrant.vmx build/vagrant.vmx",
+        "gunzip ${path.root}/build/vmware_bullseye_vagrant_${arch.value}.vmdk.gz",
+        "cp ${path.root}/vm_configs/vagrant.vmx ${path.root}/build/vagrant.vmx",
         "sed -i -e 's/^scsi0:0.fileName = DISK_IMAGE/scsi0:0.fileName = \"vmware_bullseye_vagrant_${arch.value}.vmdk\"/' ${path.root}/build/vagrant.vmx"
       ]
     }
