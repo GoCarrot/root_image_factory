@@ -59,20 +59,20 @@ workflows:
             branches:
               only:
                 - develop
-      - hold-develop:
-          type: approval
-          requires:
-            - teak/terraform-plan
-          filters:
-            branches:
-              only:
-                - develop
+      # - hold-develop:
+      #     type: approval
+      #     requires:
+      #       - teak/terraform-plan
+      #     filters:
+      #       branches:
+      #         only:
+      #           - develop
       - teak/terraform-apply:
           path: "terraform"
           workspace: "development"
           context: AWS-Write
           requires:
-            - hold-develop
+            - teak/terraform-plan
           filters:
             branches:
               only:
