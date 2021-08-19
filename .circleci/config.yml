@@ -12,20 +12,6 @@ jobs:
       - teak/terraform-install:
           version: 1.0.5
 
-  build-develop:
-    docker:
-      - image: cimg/base:2021.04
-
-    steps:
-      - checkout
-      - teak/terraform-install:
-          version: 1.0.5
-      - teak/terraform-init:
-          path: "terraform"
-      - teak/terraform-plan:
-          workspace: "development"
-          path: "terraform"
-
   build-production:
     docker:
       - image: cimg/base:2021.04
@@ -40,19 +26,6 @@ jobs:
           workspace: "production"
           path: "terraform"
 
-  deploy-develop:
-    docker:
-      - image: cimg/base:2021.04
-
-    steps:
-      - checkout
-      - teak/terraform-install:
-          version: 1.0.5
-      - teak/terraform-init:
-          path: "terraform"
-      - teak/terraform-apply:
-          workspace: "development"
-          path: "terraform"
 
   deploy-production:
     docker:
@@ -74,7 +47,9 @@ workflows:
   build:
     jobs:
       - setup
-      - build-develop:
+      - teak/terraform-plan:
+          path: "terraform"
+          workspace: "development"
           context: AWS-Write
           requires:
             - setup
@@ -90,7 +65,9 @@ workflows:
             branches:
               only:
                 - develop
-      - deploy-develop:
+      - teak/terraform-apply:
+          path: "terraform"
+          workspace: "development"
           context: AWS-Write
           requires:
             - hold-develop
