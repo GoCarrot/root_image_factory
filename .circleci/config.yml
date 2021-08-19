@@ -46,9 +46,13 @@ jobs:
 
 workflows:
   version: 2
-  build:
+  build-development:
     jobs:
-      - setup
+      - setup:
+          filters: &develop-filter
+            branches:
+              only:
+                - develop
       - teak/terraform-plan:
           path: "terraform"
           workspace: "development"
@@ -56,17 +60,13 @@ workflows:
           requires:
             - setup
           filters:
-            branches:
-              only:
-                - develop
-      # - hold-develop:
-      #     type: approval
-      #     requires:
-      #       - teak/terraform-plan
-      #     filters:
-      #       branches:
-      #         only:
-      #           - develop
+            <<: *develop-filter
+      - hold:
+          type: approval
+          requires:
+            - teak/terraform-plan
+          filters:
+            <<: *develop-filter
       - teak/terraform-apply:
           path: "terraform"
           workspace: "development"
@@ -74,9 +74,7 @@ workflows:
           requires:
             - teak/terraform-plan
           filters:
-            branches:
-              only:
-                - develop
+            <<: *develop-filter
       - teak/packer-build:
           pre-steps:
             - run:
@@ -89,6 +87,46 @@ workflows:
           requires:
             - teak/terraform-apply
           filters:
+            <<: *develop-filter
+  build-production:
+    jobs:
+      - setup:
+          filters: &main-filter
             branches:
               only:
-                - develop
+                - main
+      - teak/terraform-plan:
+          path: "terraform"
+          workspace: "production"
+          context: AWS-Write
+          requires:
+            - setup
+          filters:
+            <<: *main-filter
+      - hold:
+          type: approval
+          requires:
+            - teak/terraform-plan
+          filters:
+            <<: *main-filter
+      - teak/terraform-apply:
+          path: "terraform"
+          workspace: "production"
+          context: AWS-Write
+          requires:
+            - teak/terraform-plan
+          filters:
+            <<: *main-filter
+      - teak/packer-build:
+          pre-steps:
+            - run:
+                command: sudo apt-get update && sudo apt-get install -y ansible awscli
+          path: "packer"
+          var: "region=us-east-1,environment=production"
+          artifact_path: packer/build
+          except: "amazon-ebs.debian_arm64"
+          context: AWS-Write
+          requires:
+            - teak/terraform-apply
+          filters:
+            <<: *main-filter
