@@ -72,7 +72,7 @@ workflows:
           workspace: "development"
           context: AWS-Write
           requires:
-            - teak/terraform-plan
+            - hold
           filters:
             <<: *develop-filter
       - teak/packer-build:
@@ -114,7 +114,7 @@ workflows:
           workspace: "production"
           context: AWS-Write
           requires:
-            - teak/terraform-plan
+            - hold
           filters:
             <<: *main-filter
       - teak/packer-build:
