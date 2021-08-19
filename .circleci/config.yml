@@ -21,6 +21,7 @@ jobs:
       - teak/terraform-install:
           version: 1.0.5
       - teak/terraform-init:
+          workspace: "development"
           path: "terraform"
       - teak/terraform-plan:
           workspace: "development"
@@ -35,6 +36,7 @@ jobs:
       - teak/terraform-install:
           version: 1.0.5
       - teak/terraform-init:
+          workspace: "development"
           path: "terraform"
       - teak/terraform-plan:
           workspace: "production"
@@ -49,6 +51,7 @@ jobs:
       - teak/terraform-install:
           version: 1.0.5
       - teak/terraform-init:
+          workspace: "development"
           path: "terraform"
       - teak/terraform-apply:
           workspace: "development"
@@ -63,6 +66,7 @@ jobs:
       - teak/terraform-install:
           version: 1.0.5
       - teak/terraform-init:
+          workspace: "development"
           path: "terraform"
       - teak/terraform-apply:
           workspace: "production"
