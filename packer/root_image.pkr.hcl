@@ -285,7 +285,7 @@ build {
   }
 
   provisioner "ansible" {
-    playbook_file = "./playbooks/cloud_images.yml"
+    playbook_file = "${path.root}/playbooks/cloud_images.yml"
     extra_arguments = [
       "--extra-vars", "build_environment=${var.environment}"
     ]
@@ -331,10 +331,10 @@ build {
       only = ["amazon-ebs.debian_${arch.key}"]
       inline = [
         "rm build/*",
-        "aws s3 cp s3://${data.amazon-parameterstore.local_vm_bucket.value}/vmware_bullseye_vagrant_${arch.value}.vmdk.gz build/vmware_bullseye_vagrant_${arch.value}.vmdk.gz",
+        "aws s3 cp s3://${data.amazon-parameterstore.local_vm_bucket.value}/vmware_bullseye_vagrant_${arch.value}.vmdk.gz ${path.root}/build/vmware_bullseye_vagrant_${arch.value}.vmdk.gz",
         "gunzip build/vmware_bullseye_vagrant_${arch.value}.vmdk.gz",
         "cp vm_configs/vagrant.vmx build/vagrant.vmx",
-        "sed -i -e 's/^scsi0:0.fileName = DISK_IMAGE/scsi0:0.fileName = \"vmware_bullseye_vagrant_${arch.value}.vmdk\"/' build/vagrant.vmx"
+        "sed -i -e 's/^scsi0:0.fileName = DISK_IMAGE/scsi0:0.fileName = \"vmware_bullseye_vagrant_${arch.value}.vmdk\"/' ${path.root}/build/vagrant.vmx"
       ]
     }
   }
@@ -346,7 +346,7 @@ build {
     content {
       post-processor "artifice" {
         only  = ["amazon-ebs.debian_${arch.key}"]
-        files = ["build/vmware_bullseye_vagrant_${arch.value}.vmdk"]
+        files = ["${path.root}/build/vmware_bullseye_vagrant_${arch.value}.vmdk"]
 
         keep_input_artifact = false
       }
@@ -354,8 +354,8 @@ build {
       post-processor "vagrant" {
         only = ["amazon-ebs.debian_${arch.key}"]
 
-        include = ["./build/vagrant.vmx"]
-        output  = "./build/debian-11_${arch.value}.box"
+        include = ["${path.root}/build/vagrant.vmx"]
+        output  = "${path.root}/build/debian-11_${arch.value}.box"
 
         provider_override = "vmware"
       }
