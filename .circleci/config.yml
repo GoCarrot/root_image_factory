@@ -60,7 +60,7 @@ workflows:
       - hold-develop:
           type: approval
           requires:
-            - build-develop
+            - teak/terraform-plan
           filters:
             branches:
               only:
