@@ -84,6 +84,7 @@ workflows:
           path: "packer"
           var: "region=us-east-1,environment=development"
           artifact_path: packer/build
+          except: "amazon-ebs.debian_arm64"
           context: AWS-Write
           requires:
             - teak/terraform-apply
