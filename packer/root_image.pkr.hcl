@@ -332,8 +332,8 @@ build {
       inline = [
         "aws s3 cp s3://${data.amazon-parameterstore.local_vm_bucket.value}/vmware_bullseye_vagrant_${arch.value}.vmdk.gz ${path.root}/build/vmware_bullseye_vagrant_${arch.value}.vmdk.gz",
         "gunzip ${path.root}/build/vmware_bullseye_vagrant_${arch.value}.vmdk.gz",
-        "cp ${path.root}/vm_configs/vagrant.vmx ${path.root}/build/vagrant.vmx",
-        "sed -i -e 's/^scsi0:0.fileName = DISK_IMAGE/scsi0:0.fileName = \"vmware_bullseye_vagrant_${arch.value}.vmdk\"/' ${path.root}/build/vagrant.vmx"
+        "cp ${path.root}/vm_configs/vagrant.vmx ${path.root}/build/vagrant_${arch.value}.vmx",
+        "sed -i -e 's/^scsi0:0.fileName = DISK_IMAGE/scsi0:0.fileName = \"vmware_bullseye_vagrant_${arch.value}.vmdk\"/' ${path.root}/build/vagrant_${arch.value}.vmx"
       ]
     }
   }
@@ -353,7 +353,7 @@ build {
       post-processor "vagrant" {
         only = ["amazon-ebs.debian_${arch.key}"]
 
-        include = ["${path.root}/build/vagrant.vmx"]
+        include = ["${path.root}/build/vagrant_${arch.value}.vmx"]
         output  = "${path.root}/build/debian-11_${arch.value}.box"
 
         provider_override = "vmware"
