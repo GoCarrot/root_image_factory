@@ -34,14 +34,14 @@ workflows:
           name: "Human, your approval is required (Development)"
           type: approval
           requires:
-            - teak/terraform-plan
+            - "Plan (Development)"
       - teak/terraform-apply:
           name: "Apply (Development)"
           path: "terraform"
           workspace: "development"
           context: AWS-Write
           requires:
-            - hold
+            - "Human, your approval is required (Development)"
       - teak/packer-build:
           name: "Generate Images (Development)"
           pre-steps:
@@ -53,7 +53,7 @@ workflows:
           except: "amazon-ebs.debian_arm64"
           context: AWS-Write
           requires:
-            - teak/terraform-apply
+            - "Apply (Development)"
   build-production:
     jobs:
       - setup:
@@ -72,14 +72,14 @@ workflows:
           name: "Human, your approval is required (Production)"
           type: approval
           requires:
-            - teak/terraform-plan
+            - "Plan (Production)"
       - teak/terraform-apply:
           name: "Apply (Production)"
           path: "terraform"
           workspace: "production"
           context: AWS-Write
           requires:
-            - hold
+            - "Human, your approval is required (Production)"
       - teak/packer-build:
           name: "Generate Images (Production)"
           pre-steps:
@@ -91,4 +91,4 @@ workflows:
           except: "amazon-ebs.debian_arm64"
           context: AWS-Write
           requires:
-            - teak/terraform-apply
+            - "Plan (Production)"
