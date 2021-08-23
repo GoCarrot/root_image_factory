@@ -57,7 +57,7 @@ variable "source_ami_name_prefix" {
 variable "vagrant_cloud_version" {
   type        = string
   description = "The version of the published vagrant box"
-  default     = "0.0.1"
+  default     = "0.0.1-${env("CIRCLE_WORKFLOW_ID")}"
 }
 
 data "amazon-parameterstore" "role_arn" {
