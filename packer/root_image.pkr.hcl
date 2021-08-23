@@ -115,6 +115,8 @@ locals {
     arm64  = data.amazon-ami.base_arm64_debian_ami.id
   }
   arch_map = { x86_64 = "amd64", arm64 = "arm64" }
+  # Make this just be arch_map once Vagrant supports arm.
+  vagrant_arch_map = { x86_64 = "amd64" }
 }
 
 source "amazon-ebssurrogate" "debian" {
@@ -345,7 +347,7 @@ build {
   }
 
   dynamic "post-processors" {
-    for_each = local.arch_map
+    for_each = local.vagrant_arch_map
     iterator = arch
 
     content {
@@ -366,7 +368,7 @@ build {
       }
 
       post-processor "vagrant-cloud" {
-        only = ["amazon-ebs.debian_x86_64"]
+        only = ["amazon-ebs.debian_${arch.key}"]
 
         box_tag = "teak/bullseye64"
         version = var.vagrant_cloud_version
