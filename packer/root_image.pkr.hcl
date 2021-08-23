@@ -54,6 +54,12 @@ variable "source_ami_name_prefix" {
   default     = "debian-11-"
 }
 
+variable "vagrant_cloud_version" {
+  type        = string
+  description = "The version of the published vagrant box"
+  default     = "0.0.1"
+}
+
 data "amazon-parameterstore" "role_arn" {
   region = var.region
 
@@ -357,6 +363,15 @@ build {
         output  = "${path.root}/build/debian-11_${arch.value}.box"
 
         provider_override = "vmware"
+      }
+
+      post-processor "vagrant-cloud" {
+        only = ["amazon-ebs.debian_x86_64"]
+
+        box_tag = "teak/bullseye64"
+        version = var.vagrant_cloud_version
+
+        no_release = var.environment != "production"
       }
     }
   }
