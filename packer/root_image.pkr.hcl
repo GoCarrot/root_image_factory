@@ -54,6 +54,12 @@ variable "source_ami_name_prefix" {
   default     = "debian-11-"
 }
 
+variable "vagrant_cloud_version" {
+  type        = string
+  description = "The version of the published vagrant box. Anything after a '-' will be removed in production."
+  default     = "0.0.1-${env("CIRCLE_WORKFLOW_ID")}"
+}
+
 data "amazon-parameterstore" "role_arn" {
   region = var.region
 
@@ -109,6 +115,9 @@ locals {
     arm64  = data.amazon-ami.base_arm64_debian_ami.id
   }
   arch_map = { x86_64 = "amd64", arm64 = "arm64" }
+  # Make this just be arch_map once Vagrant supports arm.
+  vagrant_arch_map = { x86_64 = "amd64" }
+  vagrant_cloud_version = var.environment == "production" ? element(split(var.vagrant_cloud_version, "-"), 0) : var.vagrant_cloud_version
 }
 
 source "amazon-ebssurrogate" "debian" {
@@ -339,7 +348,7 @@ build {
   }
 
   dynamic "post-processors" {
-    for_each = local.arch_map
+    for_each = local.vagrant_arch_map
     iterator = arch
 
     content {
@@ -357,6 +366,15 @@ build {
         output  = "${path.root}/build/debian-11_${arch.value}.box"
 
         provider_override = "vmware"
+      }
+
+      post-processor "vagrant-cloud" {
+        only = ["amazon-ebs.debian_${arch.key}"]
+
+        box_tag = "teak/bullseye64"
+        version = local.vagrant_cloud_version
+
+        no_release = var.environment != "production"
       }
     }
   }

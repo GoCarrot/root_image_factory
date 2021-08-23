@@ -292,6 +292,8 @@ resource "aws_s3_bucket" "local_vm" {
       days = 1
     }
   }
+
+  force_destroy = terraform.workspace == "development"
 }
 
 resource "aws_s3_bucket_public_access_block" "local_vm" {
@@ -325,6 +327,13 @@ data "aws_iam_policy_document" "allow_bucket_read" {
 resource "aws_s3_bucket_policy" "allow_bucket_read" {
   bucket = aws_s3_bucket.local_vm.id
   policy = data.aws_iam_policy_document.allow_bucket_read.json
+
+  # Bucket policy and public access block cannot be "created" concurrently.
+  # By depending on the public access block we serialize application of the policy
+  # and public access block.
+  depends_on = [
+    aws_s3_bucket_public_access_block.local_vm
+  ]
 }
 
 # Allow Packer builds to upload files to our local_vm bucket

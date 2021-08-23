@@ -12,70 +12,43 @@ jobs:
       - teak/terraform-install:
           version: 1.0.5
       - teak/packer-install:
-          version: 1.7.4
-
-  build-production:
-    docker:
-      - image: cimg/base:2021.04
-
-    steps:
-      - checkout
-      - teak/terraform-install:
-          version: 1.0.5
-      - teak/terraform-init:
-          path: "terraform"
-      - teak/terraform-plan:
-          workspace: "production"
-          path: "terraform"
-
-
-  deploy-production:
-    docker:
-      - image: cimg/base:2021.04
-
-    steps:
-      - checkout
-      - teak/terraform-install:
-          version: 1.0.5
-      - teak/terraform-init:
-          path: "terraform"
-      - teak/terraform-apply:
-          workspace: "production"
-          path: "terraform"
-
+          version: 1.7.5-dev
+          github_releases_user: AlexSc
+          gpg_key_id: EC3A3F7C6C4F9D25
 
 workflows:
   version: 2
   build-development:
     jobs:
       - setup:
-          filters: &develop-filter
+          filters:
             branches:
               only:
                 - develop
       - teak/terraform-plan:
+          name: "Plan (Development)"
           path: "terraform"
           workspace: "development"
           context: AWS-Write
           requires:
             - setup
-          filters:
-            <<: *develop-filter
       - hold:
+          name: "Human, your approval is required (Development)"
           type: approval
           requires:
-            - teak/terraform-plan
-          filters:
-            <<: *develop-filter
+            - "Plan (Development)"
       - teak/terraform-apply:
+          name: "Apply (Development)"
           path: "terraform"
           workspace: "development"
           context: AWS-Write
           requires:
-            - hold
-          filters:
-            <<: *develop-filter
+            - "Human, your approval is required (Development)"
       - teak/packer-build:
+          version: 1.7.5-dev
+          github_releases_user: AlexSc
+          gpg_key_id: EC3A3F7C6C4F9D25
+          name: "Generate Images (Development)"
           pre-steps:
             - run:
                 command: sudo apt-get update && sudo apt-get install -y ansible awscli
@@ -83,41 +56,42 @@ workflows:
           var: "region=us-east-1,environment=development"
           artifact_path: packer/build
           except: "amazon-ebs.debian_arm64"
-          context: AWS-Write
+          context:
+            - AWS-Write
+            - Vagrant
           requires:
-            - teak/terraform-apply
-          filters:
-            <<: *develop-filter
+            - "Apply (Development)"
   build-production:
     jobs:
       - setup:
-          filters: &main-filter
+          filters:
             branches:
               only:
                 - main
       - teak/terraform-plan:
+          name: "Plan (Production)"
           path: "terraform"
           workspace: "production"
           context: AWS-Write
           requires:
             - setup
-          filters:
-            <<: *main-filter
       - hold:
+          name: "Human, your approval is required (Production)"
           type: approval
           requires:
-            - teak/terraform-plan
-          filters:
-            <<: *main-filter
+            - "Plan (Production)"
       - teak/terraform-apply:
+          name: "Apply (Production)"
           path: "terraform"
           workspace: "production"
           context: AWS-Write
           requires:
-            - hold
-          filters:
-            <<: *main-filter
+            - "Human, your approval is required (Production)"
       - teak/packer-build:
+          version: 1.7.5-dev
+          github_releases_user: AlexSc
+          gpg_key_id: EC3A3F7C6C4F9D25
+          name: "Generate Images (Production)"
           pre-steps:
             - run:
                 command: sudo apt-get update && sudo apt-get install -y ansible awscli
@@ -125,8 +99,8 @@ workflows:
           var: "region=us-east-1,environment=production"
           artifact_path: packer/build
           except: "amazon-ebs.debian_arm64"
-          context: AWS-Write
+          context:
+            - AWS-Write
+            - Vagrant
           requires:
-            - teak/terraform-apply
-          filters:
-            <<: *main-filter
+            - "Plan (Production)"
