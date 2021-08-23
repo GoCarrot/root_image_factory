@@ -117,7 +117,7 @@ locals {
   arch_map = { x86_64 = "amd64", arm64 = "arm64" }
   # Make this just be arch_map once Vagrant supports arm.
   vagrant_arch_map = { x86_64 = "amd64" }
-  vagrant_cloud_version = var.environment == "production" ? element(split(var.vagrant_cloud_version, "-"), 0) : var.vagrant_cloud_version
+  vagrant_cloud_version = var.environment == "production" ? element(split("-", var.vagrant_cloud_version), 0) : var.vagrant_cloud_version
 }
 
 source "amazon-ebssurrogate" "debian" {
