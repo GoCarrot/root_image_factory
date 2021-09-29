@@ -410,8 +410,7 @@ data "aws_iam_policy_document" "log_access" {
       "logs:PutLogEvents"
     ]
     resources = [
-      "arn:aws:logs:*:*:log-group:/teak/server/&{aws:PrincipalTag/Environment}/ancillary/*:log-stream:unknown.*",
-      "arn:aws:logs:*:*:log-group:/teak/server/&{aws:PrincipalTag/Environment}/ancillary/*:log-stream:&{aws:PrincipalTag/Service}.*",
+      "arn:aws:logs:*:*:log-group:/teak/server/&{aws:PrincipalTag/Environment}/ancillary/*:log-stream:*",
       "arn:aws:logs:*:*:log-group:/teak/server/&{aws:PrincipalTag/Environment}/service/&{aws:PrincipalTag/Service}:log-stream:&{aws:PrincipalTag/Service}.*",
       "arn:aws:logs:*:*:log-group:/teak/server/&{aws:PrincipalTag/Environment}/service/&{aws:PrincipalTag/Service}/*:log-stream:&{aws:PrincipalTag/Service}.*"
     ]
