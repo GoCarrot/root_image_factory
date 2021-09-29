@@ -27,7 +27,7 @@ locals {
     Service     = "ServerImages"
   }
 
-  zones = slice(sort(data.aws_availability_zones.azs.names), 0, var.az_count)
+  zones            = slice(sort(data.aws_availability_zones.azs.names), 0, var.az_count)
   parameter_prefix = "/teak/${terraform.workspace}/ci-cd"
 }
 
@@ -359,8 +359,8 @@ resource "aws_s3_bucket_policy" "allow_bucket_read" {
 # Allow Packer builds to upload files to our local_vm bucket
 data "aws_iam_policy_document" "allow_vm_upload" {
   statement {
-    effect    = "Allow"
-    actions   = [
+    effect = "Allow"
+    actions = [
       "s3:PutObject",
       "s3:AbortMultipartUpload",
     ]
