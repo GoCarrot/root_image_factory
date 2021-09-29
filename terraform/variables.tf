@@ -15,3 +15,15 @@ variable "vpc_ipv4_cidr_block" {
   type        = string
   default     = "10.0.0.0/16"
 }
+
+variable "log_retention_days" {
+  description = "How long in days to retain logs from builds."
+  type        = number
+  default     = 1827
+}
+
+variable "ancillary_log_groups" {
+  description = "A list of services to collect logs from on build machines"
+  type        = list(string)
+  default     = ["fluentbit", "systemd", "cloudinit"]
+}

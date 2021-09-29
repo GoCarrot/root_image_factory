@@ -197,6 +197,26 @@ resource "aws_route_table_association" "public_subnets" {
   route_table_id = aws_route_table.build.id
 }
 
+resource "aws_cloudwatch_log_group" "ancillary" {
+  for_each = toset(var.ancillary_log_groups)
+
+  name              = "/teak/server/${terraform.workspace}/ancillary/${each.key}"
+  retention_in_days = var.log_retention_days
+
+  tags = {
+    CostCenter = "Ancillary"
+  }
+}
+
+resource "aws_cloudwatch_log_group" "service" {
+  name              = "/teak/server/${terraform.workspace}/service/unknown"
+  retention_in_days = var.log_retention_days
+
+  tags = {
+    CostCenter = "unknown"
+  }
+}
+
 data "aws_iam_policy_document" "packer" {
   statement {
     actions = [
@@ -369,6 +389,40 @@ resource "aws_iam_policy" "allow_vm_upload" {
   policy = data.aws_iam_policy_document.allow_vm_upload.json
 }
 
+data "aws_iam_policy_document" "log_access" {
+  statement {
+    sid    = "AllowCreateLogStreams"
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogStream",
+    ]
+    resources = [
+      "arn:aws:logs:*:*:log-group:/teak/server/&{aws:PrincipalTag/Environment}/ancillary/*",
+      "arn:aws:logs:*:*:log-group:/teak/server/&{aws:PrincipalTag/Environment}/service/&{aws:PrincipalTag/Service}",
+      "arn:aws:logs:*:*:log-group:/teak/server/&{aws:PrincipalTag/Environment}/service/&{aws:PrincipalTag/Service}/*"
+    ]
+  }
+
+  statement {
+    sid    = "AllowPutLogEvents"
+    effect = "Allow"
+    actions = [
+      "logs:PutLogEvents"
+    ]
+    resources = [
+      "arn:aws:logs:*:*:log-group:/teak/server/&{aws:PrincipalTag/Environment}/ancillary/*:log-stream:unknown.*",
+      "arn:aws:logs:*:*:log-group:/teak/server/&{aws:PrincipalTag/Environment}/ancillary/*:log-stream:&{aws:PrincipalTag/Service}.*",
+      "arn:aws:logs:*:*:log-group:/teak/server/&{aws:PrincipalTag/Environment}/service/&{aws:PrincipalTag/Service}:log-stream:&{aws:PrincipalTag/Service}.*",
+      "arn:aws:logs:*:*:log-group:/teak/server/&{aws:PrincipalTag/Environment}/service/&{aws:PrincipalTag/Service}/*:log-stream:&{aws:PrincipalTag/Service}.*"
+    ]
+  }
+}
+
+resource "aws_iam_policy" "log_access" {
+  name   = "LogAccess"
+  policy = data.aws_iam_policy_document.log_access.json
+}
+
 resource "aws_iam_role" "vm_builder" {
   name        = "VMBuilder"
   description = "Role for EC2 instances building VMs"
@@ -379,6 +433,11 @@ resource "aws_iam_role" "vm_builder" {
 resource "aws_iam_role_policy_attachment" "vm_builder_allow" {
   role       = aws_iam_role.vm_builder.name
   policy_arn = aws_iam_policy.allow_vm_upload.arn
+}
+
+resource "aws_iam_role_policy_attachment" "log_access" {
+  role       = aws_iam_role.vm_builder.name
+  policy_arn = aws_iam_policy.log_access.arn
 }
 
 resource "aws_iam_instance_profile" "vm_builder" {
