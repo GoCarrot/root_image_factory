@@ -12,9 +12,7 @@ jobs:
       - teak/terraform-install:
           version: 1.0.5
       - teak/packer-install:
-          version: 1.7.5-dev
-          github_releases_user: AlexSc
-          gpg_key_id: EC3A3F7C6C4F9D25
+          version: 1.7.5
 
 workflows:
   version: 2
@@ -45,9 +43,7 @@ workflows:
           requires:
             - "Human, your approval is required (Development)"
       - teak/packer-build:
-          version: 1.7.5-dev
-          github_releases_user: AlexSc
-          gpg_key_id: EC3A3F7C6C4F9D25
+          version: 1.7.5
           name: "Generate Images (Development)"
           pre-steps:
             - run:
@@ -88,9 +84,7 @@ workflows:
           requires:
             - "Human, your approval is required (Production)"
       - teak/packer-build:
-          version: 1.7.5-dev
-          github_releases_user: AlexSc
-          gpg_key_id: EC3A3F7C6C4F9D25
+          version: 1.7.5
           name: "Generate Images (Production)"
           pre-steps:
             - run:
