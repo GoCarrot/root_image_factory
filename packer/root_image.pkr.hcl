@@ -115,7 +115,7 @@ locals {
     arm64  = data.amazon-ami.base_arm64_debian_ami.id
   }
   arch_map = { x86_64 = "amd64", arm64 = "arm64" }
-  vagrant_arch_map = arch_map
+  vagrant_arch_map = local.arch_map
   vagrant_cloud_version = var.environment == "production" ? element(split("-", var.vagrant_cloud_version), 0) : var.vagrant_cloud_version
 }
 
