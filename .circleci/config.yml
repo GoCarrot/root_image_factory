@@ -50,7 +50,6 @@ workflows:
                 command: sudo apt-get update && sudo apt-get install -y ansible awscli
           path: "packer"
           var: "region=us-east-1,environment=development"
-          except: "amazon-ebs.debian_arm64"
           context:
             - AWS-Write
             - Vagrant
