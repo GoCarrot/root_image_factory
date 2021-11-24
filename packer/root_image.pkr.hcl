@@ -1,3 +1,17 @@
+# Copyright 2021 Teak.io, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # This creates a Debian 11 image for EC2 and VMware which is suitable for further provisioning.
 
 packer {
@@ -115,8 +129,7 @@ locals {
     arm64  = data.amazon-ami.base_arm64_debian_ami.id
   }
   arch_map = { x86_64 = "amd64", arm64 = "arm64" }
-  # Make this just be arch_map once Vagrant supports arm.
-  vagrant_arch_map = { x86_64 = "amd64" }
+  vagrant_arch_map = local.arch_map
   vagrant_cloud_version = var.environment == "production" ? element(split("-", var.vagrant_cloud_version), 0) : var.vagrant_cloud_version
 }
 
@@ -371,7 +384,7 @@ build {
       post-processor "vagrant-cloud" {
         only = ["amazon-ebs.debian_${arch.key}"]
 
-        box_tag = "teak/bullseye64"
+        box_tag = "teak/bullseye_${arch.key}"
         version = local.vagrant_cloud_version
 
         no_release = var.environment != "production"
