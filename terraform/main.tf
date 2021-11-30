@@ -490,3 +490,8 @@ resource "aws_ssm_parameter" "vm_bucket" {
 
   value = aws_s3_bucket.local_vm.id
 }
+
+resource "aws_codestarconnections_connection" "github" {
+  name          = "github-connection"
+  provider_type = "GitHub"
+}
