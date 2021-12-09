@@ -284,7 +284,7 @@ build {
 
     content {
       name             = "debian_${arch.key}"
-      ami_name         = "${var.environment}-${var.ami_prefix}-${arch.key}-${local.timestamp}"
+      ami_name         = "${var.environment}_${var.ami_prefix}_${arch.key}.${local.timestamp}"
       instance_type    = var.instance_type[arch.key]
       ami_architecture = arch.key
 
@@ -299,7 +299,7 @@ build {
 
     content {
       name             = "debian_${arch.key}"
-      ami_name         = "temp-${var.environment}-${var.ami_prefix}-${arch.key}-${local.timestamp}"
+      ami_name         = "temp-${var.environment}_${var.ami_prefix}_${arch.key}.${local.timestamp}"
       instance_type    = var.instance_type[arch.key]
 
       source_ami = local.source_ami[arch.key]
