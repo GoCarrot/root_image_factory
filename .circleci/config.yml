@@ -15,7 +15,7 @@
 version: 2.1
 
 orbs:
-  teak: teak/sdk-utils@0.1
+  teak: teak/sdk-utils@dev:alpha
 
 jobs:
   setup:
@@ -57,7 +57,6 @@ workflows:
           requires:
             - "Human, your approval is required (Development)"
       - teak/packer-build:
-          circleci_ip_ranges: true
           version: 1.7.5
           name: "Generate Images (Development)"
           pre-steps:
