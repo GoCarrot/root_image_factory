@@ -74,6 +74,12 @@ variable "vagrant_cloud_version" {
   default     = "0.0.2-${env("CIRCLE_WORKFLOW_ID")}"
 }
 
+variable "security_group_name" {
+  type        = string
+  description = "The name of the security group to attach to builder instances. Leave blank to use Packer generated security groups."
+  default     = ""
+}
+
 data "amazon-parameterstore" "role_arn" {
   region = var.region
 
@@ -145,6 +151,14 @@ source "amazon-ebssurrogate" "debian" {
     }
 
     random = true
+  }
+
+  dynamic "security_group_filter" {
+    for_each = coalesce([var.security_group_name])
+
+    filters = {
+      "group-name" = var.security_group_name
+    }
   }
 
   run_volume_tags = {
@@ -230,6 +244,14 @@ source "amazon-ebs" "debian" {
     }
 
     random = true
+  }
+
+  dynamic "security_group_filter" {
+    for_each = coalesce([var.security_group_name])
+
+    filters = {
+      "group-name" = var.security_group_name
+    }
   }
 
   run_volume_tags = {
