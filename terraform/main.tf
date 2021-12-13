@@ -522,6 +522,8 @@ resource "aws_security_group" "circleci-ssh" {
   name        = "CircleCI-SSHAccess"
   description = "Allows SSH access from known CirlceCI IPs"
 
+  vpc_id = aws_vpc.build.id
+
   ingress {
     description = "SSH from CircleCI"
     from_port   = 22
