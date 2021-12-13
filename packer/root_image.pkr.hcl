@@ -156,8 +156,10 @@ source "amazon-ebssurrogate" "debian" {
   dynamic "security_group_filter" {
     for_each = coalesce([var.security_group_name])
 
-    filters = {
-      "group-name" = var.security_group_name
+    content {
+      filters = {
+        "group-name" = var.security_group_name
+      }
     }
   }
 
@@ -249,8 +251,10 @@ source "amazon-ebs" "debian" {
   dynamic "security_group_filter" {
     for_each = coalesce([var.security_group_name])
 
-    filters = {
-      "group-name" = var.security_group_name
+    content {
+      filters = {
+        "group-name" = var.security_group_name
+      }
     }
   }
 
