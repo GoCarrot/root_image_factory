@@ -29,6 +29,11 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 3.54"
     }
+
+    dns = {
+      source  = "hashicorp/dns"
+      version = "~> 3.2"
+    }
   }
 }
 
@@ -53,6 +58,8 @@ provider "aws" {
     tags = local.default_tags
   }
 }
+
+provider "dns" {}
 
 data "aws_caller_identity" "admin" {
   provider = aws.admin
@@ -505,4 +512,29 @@ resource "aws_ssm_parameter" "connection_arn" {
 resource "aws_codestarconnections_connection" "github" {
   name          = "github-connection"
   provider_type = "GitHub"
+}
+
+data "dns_a_record_set" "circleci-ips" {
+  host = "all.knownips.circleci.com"
+}
+
+resource "aws_security_group" "circleci-ssh" {
+  name        = "CircleCI-SSHAccess"
+  description = "Allows SSH access from known CirlceCI IPs"
+
+  ingress {
+    description = "SSH from CircleCI"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = formatlist("%s/32", data.dns_a_record_set.circleci-ips.addrs)
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
 }
