@@ -63,7 +63,7 @@ workflows:
             - run:
                 command: sudo apt-get update && sudo apt-get install -y ansible awscli
           path: "packer"
-          var: "region=us-east-1,environment=development,security_group_name=CircleCI-SSHAccess"
+          var: "region=us-east-1,environment=development"
           context:
             - AWS-Write
             - Vagrant

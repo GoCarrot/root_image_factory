@@ -154,7 +154,7 @@ source "amazon-ebssurrogate" "debian" {
   }
 
   dynamic "security_group_filter" {
-    for_each = coalesce([var.security_group_name])
+    for_each = [for s in [var.security_group_name] : s if s != ""]
 
     content {
       filters = {
@@ -249,7 +249,7 @@ source "amazon-ebs" "debian" {
   }
 
   dynamic "security_group_filter" {
-    for_each = coalesce([var.security_group_name])
+    for_each = [for s in [var.security_group_name] : s if s != ""]
 
     content {
       filters = {
