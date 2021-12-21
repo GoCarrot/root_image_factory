@@ -392,7 +392,7 @@ build {
 
     content {
       only        = ["amazon-ebs.debian_${arch.key}"]
-      source      = "/build/debian-cloud-images/image_bullseye_vmware_${arch.value}.build.json"
+      source      = "/build/debian-cloud-images/image_bullseye_vagrant_${arch.value}.build.json"
       destination = "manifests/vagrant_${source.name}.json"
       direction   = "download"
     }
