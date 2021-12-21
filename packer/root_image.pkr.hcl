@@ -365,10 +365,24 @@ build {
         "cd /build/debian-cloud-images",
         "make vmware_bullseye_vagrant_${arch.value}",
         "gzip vmware_bullseye_vagrant_${arch.value}.vmdk",
-        "aws s3 cp vmware_bullseye_vagrant_${arch.value}.vmdk.gz s3://${data.amazon-parameterstore.local_vm_bucket.value}/vmware_bullseye_vagrant_${arch.value}.vmdk.gz"
       ]
     }
   }
+
+  # Download VM image
+  dynamic "provisioner" {
+    for_each = local.arch_map
+    iterator = arch
+    labels   = ["file"]
+
+    content {
+      only        = ["amazon-ebs.debian_${arch.key}"]
+      source      = "/build/debian-cloud-images/vmware_bullseye_vagrant_${arch.value}.vmdk.gz"
+      destination = "${path.root}/build/vmware_bullseye_vagrant_${arch.value}.vmdk.gz"
+      direction   = "download"
+    }
+  }
+
 
   # Get manifest for EC2 builds
   dynamic "provisioner" {
@@ -424,7 +438,6 @@ build {
         # Parse our manifest into the format used by downstream builders
         "mkdir -p manifests",
         "cat raw_manifests/vagrant_${source.name}.json | jq --raw-output \".data.packages[] | \\\"\\(.name)$(printf \"\t\")\\(.version)\\\"\" > manifests/vargrant_${source.name}.txt",
-        "aws s3 cp s3://${data.amazon-parameterstore.local_vm_bucket.value}/vmware_bullseye_vagrant_${arch.value}.vmdk.gz ${path.root}/build/vmware_bullseye_vagrant_${arch.value}.vmdk.gz",
         "gunzip ${path.root}/build/vmware_bullseye_vagrant_${arch.value}.vmdk.gz",
         "cp ${path.root}/vm_configs/vagrant.vmx ${path.root}/build/vagrant_${arch.value}.vmx",
         "sed -i -e 's/^scsi0:0.fileName = DISK_IMAGE/scsi0:0.fileName = \"vmware_bullseye_vagrant_${arch.value}.vmdk\"/' ${path.root}/build/vagrant_${arch.value}.vmx"
