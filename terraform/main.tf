@@ -49,7 +49,7 @@ locals {
   }
 
   zones            = slice(sort(data.aws_availability_zones.azs.names), 0, var.az_count)
-  parameter_prefix = "/teak/${terraform.workspace}/ci-cd"
+  parameter_prefix = "/${var.organization_prefix}/${terraform.workspace}/ci-cd"
 }
 
 provider "aws" {
@@ -223,7 +223,7 @@ resource "aws_route_table_association" "public_subnets" {
 resource "aws_cloudwatch_log_group" "ancillary" {
   for_each = toset(var.ancillary_log_groups)
 
-  name              = "/teak/server/${terraform.workspace}/ancillary/${each.key}"
+  name              = "/${var.organization_prefix}/server/${terraform.workspace}/ancillary/${each.key}"
   retention_in_days = var.log_retention_days
 
   tags = {
@@ -232,7 +232,7 @@ resource "aws_cloudwatch_log_group" "ancillary" {
 }
 
 resource "aws_cloudwatch_log_group" "service" {
-  name              = "/teak/server/${terraform.workspace}/service/unknown"
+  name              = "/${var.organization_prefix}/server/${terraform.workspace}/service/unknown"
   retention_in_days = var.log_retention_days
 
   tags = {
