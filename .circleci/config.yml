@@ -62,6 +62,9 @@ workflows:
           pre-steps:
             - run:
                 command: sudo apt-get update && sudo apt-get install -y ansible awscli
+          post-steps:
+            - store_artifacts:
+                path: "manifests/"
           path: "packer"
           var: "region=us-east-1,environment=development,security_group_name=CircleCI-SSHAccess"
           context:
@@ -101,6 +104,9 @@ workflows:
           pre-steps:
             - run:
                 command: sudo apt-get update && sudo apt-get install -y ansible awscli
+          post-steps:
+            - store_artifacts:
+                path: "manifests/"
           path: "packer"
           var: "region=us-east-1,environment=production,security_group_name=CircleCI-SSHAccess"
           except: "amazon-ebs.debian_arm64"
