@@ -338,15 +338,27 @@ data "aws_iam_policy_document" "allow_ec2_assume" {
 
 data "aws_iam_policy_document" "log_access" {
   statement {
-    sid    = "AllowCreateLogStreams"
+    sid    = "AllowDescribeCreateLogStreams"
     effect = "Allow"
     actions = [
       "logs:CreateLogStream",
+      "logs:DescribeLogStreams",
     ]
     resources = [
-      "arn:aws:logs:*:*:log-group:/teak/server/&{aws:PrincipalTag/Environment}/ancillary/*",
-      "arn:aws:logs:*:*:log-group:/teak/server/&{aws:PrincipalTag/Environment}/service/&{aws:PrincipalTag/Service}",
-      "arn:aws:logs:*:*:log-group:/teak/server/&{aws:PrincipalTag/Environment}/service/&{aws:PrincipalTag/Service}/*"
+      "arn:aws:logs:*:*:log-group:/${var.organization_prefix}/server/&{aws:PrincipalTag/Environment}/ancillary/*",
+      "arn:aws:logs:*:*:log-group:/${var.organization_prefix}/server/&{aws:PrincipalTag/Environment}/service/&{aws:PrincipalTag/Service}",
+      "arn:aws:logs:*:*:log-group:/${var.organization_prefix}/server/&{aws:PrincipalTag/Environment}/service/&{aws:PrincipalTag/Service}/*"
+    ]
+  }
+
+  statement {
+    sid    = "AllowDescribeLogGroups"
+    effect = "Allow"
+    actions = [
+      "logs:DescribeLogGroups",
+    ]
+    resources = [
+      "arn:aws:logs:*:*:log-group:*",
     ]
   }
 
@@ -357,9 +369,9 @@ data "aws_iam_policy_document" "log_access" {
       "logs:PutLogEvents"
     ]
     resources = [
-      "arn:aws:logs:*:*:log-group:/teak/server/&{aws:PrincipalTag/Environment}/ancillary/*:log-stream:*",
-      "arn:aws:logs:*:*:log-group:/teak/server/&{aws:PrincipalTag/Environment}/service/&{aws:PrincipalTag/Service}:log-stream:&{aws:PrincipalTag/Service}.*",
-      "arn:aws:logs:*:*:log-group:/teak/server/&{aws:PrincipalTag/Environment}/service/&{aws:PrincipalTag/Service}/*:log-stream:&{aws:PrincipalTag/Service}.*"
+      "arn:aws:logs:*:*:log-group:/${var.organization_prefix}/server/&{aws:PrincipalTag/Environment}/ancillary/*:log-stream:*",
+      "arn:aws:logs:*:*:log-group:/${var.organization_prefix}/server/&{aws:PrincipalTag/Environment}/service/&{aws:PrincipalTag/Service}:log-stream:&{aws:PrincipalTag/Service}.*",
+      "arn:aws:logs:*:*:log-group:/${var.organization_prefix}/server/&{aws:PrincipalTag/Environment}/service/&{aws:PrincipalTag/Service}/*:log-stream:&{aws:PrincipalTag/Service}.*"
     ]
   }
 }
