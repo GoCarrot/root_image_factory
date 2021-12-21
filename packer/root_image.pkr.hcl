@@ -370,6 +370,34 @@ build {
     }
   }
 
+  # Get manifest for EC2 builds
+  dynamic "provisioner" {
+    for_each = local.arch_map
+    iterator = arch
+    labels   = ["file"]
+
+    content {
+      only        = ["amazon-ebssurrogate.debian_${arch.key}"]
+      source      = "/build/debian-cloud-images/image_bullseye_ec2_${arch.value}.build.json"
+      destination = "manifests/${source.name}.json"
+      direction   = "download"
+    }
+  }
+
+  # Get manifest for vagrant builds
+  dynamic "provisioner" {
+    for_each = local.arch_map
+    iterator = arch
+    labels   = ["file"]
+
+    content {
+      only        = ["amazon-ebs.debian_${arch.key}"]
+      source      = "/build/debian-cloud-images/image_bullseye_evmware_${arch.value}.build.json"
+      destination = "manifests/${source.name}.json"
+      direction   = "download"
+    }
+  }
+
   dynamic "provisioner" {
     for_each = local.arch_map
     iterator = arch
