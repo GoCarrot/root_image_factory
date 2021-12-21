@@ -52,7 +52,7 @@ variable "instance_type" {
 
 variable "ami_prefix" {
   type        = string
-  default     = "packer-root-image"
+  default     = "root"
   description = "Prefix for uniquely generated AMI names"
 }
 
