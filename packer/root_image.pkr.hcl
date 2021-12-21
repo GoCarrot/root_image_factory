@@ -92,12 +92,6 @@ data "amazon-parameterstore" "instance_profile" {
   name = "/teak/${var.environment}/ci-cd/config/ServerImages/instance_profile"
 }
 
-data "amazon-parameterstore" "local_vm_bucket" {
-  region = var.region
-
-  name = "/teak/${var.environment}/ci-cd/config/ServerImages/vm_bucket_id"
-}
-
 data "amazon-parameterstore" "ami_users" {
   region = var.region
 

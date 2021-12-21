@@ -316,37 +316,6 @@ resource "aws_iam_role_policy_attachment" "packer_attach" {
   policy_arn = aws_iam_policy.packer.arn
 }
 
-resource "aws_s3_bucket" "local_vm" {
-  bucket_prefix = "local-vm-storage-${data.aws_caller_identity.current.account_id}-"
-
-  versioning {
-    enabled = true
-  }
-
-  lifecycle_rule {
-    id      = "DeleteAll"
-    enabled = true
-
-    expiration {
-      days = 1
-    }
-
-    noncurrent_version_expiration {
-      days = 1
-    }
-  }
-
-  force_destroy = terraform.workspace == "development"
-}
-
-resource "aws_s3_bucket_public_access_block" "local_vm" {
-  bucket = aws_s3_bucket.local_vm.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
 
 data "aws_ssm_parameter" "ami_consumers" {
   provider = aws.admin
@@ -354,45 +323,6 @@ data "aws_ssm_parameter" "ami_consumers" {
   name = "${local.parameter_prefix}/config/${local.service}/ami_consumers"
 }
 
-data "aws_iam_policy_document" "allow_bucket_read" {
-  statement {
-    effect    = "Allow"
-    actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.local_vm.arn}/*"]
-
-    principals {
-      type        = "AWS"
-      identifiers = [for id in split(",", data.aws_ssm_parameter.ami_consumers.value) : "arn:aws:iam::${id}:root"]
-    }
-  }
-}
-
-resource "aws_s3_bucket_policy" "allow_bucket_read" {
-  bucket = aws_s3_bucket.local_vm.id
-  policy = data.aws_iam_policy_document.allow_bucket_read.json
-
-  # Bucket policy and public access block cannot be "created" concurrently.
-  # By depending on the public access block we serialize application of the policy
-  # and public access block.
-  depends_on = [
-    aws_s3_bucket_public_access_block.local_vm
-  ]
-}
-
-# Allow Packer builds to upload files to our local_vm bucket
-data "aws_iam_policy_document" "allow_vm_upload" {
-  statement {
-    effect = "Allow"
-    actions = [
-      "s3:PutObject",
-      "s3:AbortMultipartUpload",
-      "s3:HeadObject",
-    ]
-    resources = [
-      "${aws_s3_bucket.local_vm.arn}/*"
-    ]
-  }
-}
 
 data "aws_iam_policy_document" "allow_ec2_assume" {
   statement {
@@ -404,13 +334,6 @@ data "aws_iam_policy_document" "allow_ec2_assume" {
       identifiers = ["ec2.amazonaws.com"]
     }
   }
-}
-
-resource "aws_iam_policy" "allow_vm_upload" {
-  name        = "AllowUploadToLocalVM"
-  description = "Allows putting objects in the local vm storage bucket"
-
-  policy = data.aws_iam_policy_document.allow_vm_upload.json
 }
 
 data "aws_iam_policy_document" "log_access" {
@@ -453,11 +376,6 @@ resource "aws_iam_role" "vm_builder" {
   assume_role_policy = data.aws_iam_policy_document.allow_ec2_assume.json
 }
 
-resource "aws_iam_role_policy_attachment" "vm_builder_allow" {
-  role       = aws_iam_role.vm_builder.name
-  policy_arn = aws_iam_policy.allow_vm_upload.arn
-}
-
 resource "aws_iam_role_policy_attachment" "log_access" {
   role       = aws_iam_role.vm_builder.name
   policy_arn = aws_iam_policy.log_access.arn
@@ -488,17 +406,6 @@ resource "aws_ssm_parameter" "vmbuilder_role" {
   description = "Instance profile to assign to image builders in CI/CD"
 
   value = aws_iam_instance_profile.vm_builder.name
-}
-
-resource "aws_ssm_parameter" "vm_bucket" {
-  provider = aws.admin
-
-  name = "${local.parameter_prefix}/config/${local.service}/vm_bucket_id"
-  type = "String"
-
-  description = "ID of S3 bucket that local use VM images are uploaded to"
-
-  value = aws_s3_bucket.local_vm.id
 }
 
 resource "aws_ssm_parameter" "connection_arn" {
