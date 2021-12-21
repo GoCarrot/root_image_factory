@@ -1,1 +1,3 @@
 .terraform/
+packer/manifests
+packer/raw_manifests

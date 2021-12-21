@@ -379,8 +379,23 @@ build {
     content {
       only        = ["amazon-ebssurrogate.debian_${arch.key}"]
       source      = "/build/debian-cloud-images/image_bullseye_ec2_${arch.value}.build.json"
-      destination = "manifests/ec2_${source.name}.json"
+      destination = "raw_manifests/ec2_${source.name}.json"
       direction   = "download"
+    }
+  }
+
+  dynamic "provisioner" {
+    for_each = local.arch_map
+    iterator = arch
+    labels   = ["shell-local"]
+
+    content {
+      only = ["amazon-ebssurrogate.debian_${arch.key}"]
+      inline = [
+        # Parse our manifest into the format used by downstream builders
+        "mkdir -p manifests",
+        "cat raw_manifests/ec2_${source.name}.json | jq --raw-output \".data.packages[] | \\\"\\(.name)$(printf \"\t\")\\(.version)\\\"\" > manifests/ec2_${source.name}.txt"
+      ]
     }
   }
 
@@ -393,7 +408,7 @@ build {
     content {
       only        = ["amazon-ebs.debian_${arch.key}"]
       source      = "/build/debian-cloud-images/image_bullseye_vagrant_${arch.value}.build.json"
-      destination = "manifests/vagrant_${source.name}.json"
+      destination = "raw_manifests/vagrant_${source.name}.json"
       direction   = "download"
     }
   }
@@ -406,6 +421,9 @@ build {
     content {
       only = ["amazon-ebs.debian_${arch.key}"]
       inline = [
+        # Parse our manifest into the format used by downstream builders
+        "mkdir -p manifests",
+        "cat raw_manifests/vagrant_${source.name}.json | jq --raw-output \".data.packages[] | \\\"\\(.name)$(printf \"\t\")\\(.version)\\\"\" > manifests/vargrant_${source.name}.txt",
         "aws s3 cp s3://${data.amazon-parameterstore.local_vm_bucket.value}/vmware_bullseye_vagrant_${arch.value}.vmdk.gz ${path.root}/build/vmware_bullseye_vagrant_${arch.value}.vmdk.gz",
         "gunzip ${path.root}/build/vmware_bullseye_vagrant_${arch.value}.vmdk.gz",
         "cp ${path.root}/vm_configs/vagrant.vmx ${path.root}/build/vagrant_${arch.value}.vmx",

@@ -61,7 +61,7 @@ workflows:
           name: "Generate Images (Development)"
           pre-steps:
             - run:
-                command: sudo apt-get update && sudo apt-get install -y ansible awscli
+                command: sudo apt-get update && sudo apt-get install -y ansible awscli jq
             - run:
                 command: |
                   ip=$(curl -s https://api.ipify.org)
@@ -108,7 +108,7 @@ workflows:
           name: "Generate Images (Production)"
           pre-steps:
             - run:
-                command: sudo apt-get update && sudo apt-get install -y ansible awscli
+                command: sudo apt-get update && sudo apt-get install -y ansible awscli jq
             - run:
                 command: |
                   ip=$(curl -s https://api.ipify.org)
