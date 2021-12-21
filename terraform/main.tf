@@ -386,6 +386,7 @@ data "aws_iam_policy_document" "allow_vm_upload" {
     actions = [
       "s3:PutObject",
       "s3:AbortMultipartUpload",
+      "s3:HeadObject",
     ]
     resources = [
       "${aws_s3_bucket.local_vm.arn}/*"
