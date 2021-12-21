@@ -38,12 +38,14 @@ terraform {
 }
 
 locals {
+  service = "ServerImages"
+
   default_tags = {
     Managed     = "terraform"
     Environment = terraform.workspace
-    CostCenter  = "ServerImages"
-    Application = "ServerImages"
-    Service     = "ServerImages"
+    CostCenter  = local.service
+    Application = local.service
+    Service     = local.service
   }
 
   zones            = slice(sort(data.aws_availability_zones.azs.names), 0, var.az_count)
@@ -68,7 +70,7 @@ data "aws_caller_identity" "admin" {
 data "aws_ssm_parameter" "role_arn" {
   provider = aws.admin
 
-  name = "${local.parameter_prefix}/admin_role_arn"
+  name = "${local.parameter_prefix}/roles/admin"
 }
 
 data "aws_caller_identity" "current" {}
@@ -349,7 +351,7 @@ resource "aws_s3_bucket_public_access_block" "local_vm" {
 data "aws_ssm_parameter" "ami_consumers" {
   provider = aws.admin
 
-  name = "${local.parameter_prefix}/ami_consumers"
+  name = "${local.parameter_prefix}/config/${local.service}/ami_consumers"
 }
 
 data "aws_iam_policy_document" "allow_bucket_read" {
@@ -468,7 +470,7 @@ resource "aws_iam_instance_profile" "vm_builder" {
 resource "aws_ssm_parameter" "packer_role" {
   provider = aws.admin
 
-  name = "${local.parameter_prefix}/packer_role_arn"
+  name = "${local.parameter_prefix}/roles/packer"
   type = "String"
 
   description = "Role to assume to execute packer"
@@ -479,7 +481,7 @@ resource "aws_ssm_parameter" "packer_role" {
 resource "aws_ssm_parameter" "vmbuilder_role" {
   provider = aws.admin
 
-  name = "${local.parameter_prefix}/instance_profile"
+  name = "${local.parameter_prefix}/config/${local.service}/instance_profile"
   type = "String"
 
   description = "Instance profile to assign to image builders in CI/CD"
@@ -490,7 +492,7 @@ resource "aws_ssm_parameter" "vmbuilder_role" {
 resource "aws_ssm_parameter" "vm_bucket" {
   provider = aws.admin
 
-  name = "${local.parameter_prefix}/vm_bucket_id"
+  name = "${local.parameter_prefix}/config/${local.service}/vm_bucket_id"
   type = "String"
 
   description = "ID of S3 bucket that local use VM images are uploaded to"
@@ -501,7 +503,7 @@ resource "aws_ssm_parameter" "vm_bucket" {
 resource "aws_ssm_parameter" "connection_arn" {
   provider = aws.admin
 
-  name = "${local.parameter_prefix}/github-connection-arn"
+  name = "${local.parameter_prefix}/config/core/github_connection_arn"
   type = "String"
 
   description = "ARN of the CodeStar connection to our GitHub account"

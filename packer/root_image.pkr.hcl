@@ -83,25 +83,25 @@ variable "security_group_name" {
 data "amazon-parameterstore" "role_arn" {
   region = var.region
 
-  name = "/teak/${var.environment}/ci-cd/packer_role_arn"
+  name = "/teak/${var.environment}/ci-cd/roles/packer"
 }
 
 data "amazon-parameterstore" "instance_profile" {
   region = var.region
 
-  name = "/teak/${var.environment}/ci-cd/instance_profile"
+  name = "/teak/${var.environment}/ci-cd/config/ServerImages/instance_profile"
 }
 
 data "amazon-parameterstore" "local_vm_bucket" {
   region = var.region
 
-  name = "/teak/${var.environment}/ci-cd/vm_bucket_id"
+  name = "/teak/${var.environment}/ci-cd/config/ServerImages/vm_bucket_id"
 }
 
 data "amazon-parameterstore" "ami_users" {
   region = var.region
 
-  name = "/teak/${var.environment}/ci-cd/ami_consumers"
+  name = "/teak/${var.environment}/ci-cd/config/ServerImages/ami_consumers"
 }
 
 # Pull the latest Debian 11 AMI
