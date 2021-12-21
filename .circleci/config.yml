@@ -15,7 +15,7 @@
 version: 2.1
 
 orbs:
-  teak: teak/sdk-utils@0.1
+  teak: teak/sdk-utils@0.2
 
 jobs:
   setup:
@@ -61,9 +61,17 @@ workflows:
           name: "Generate Images (Development)"
           pre-steps:
             - run:
-                command: sudo apt-get update && sudo apt-get install -y ansible awscli
+                command: sudo apt-get update && sudo apt-get install -y ansible awscli jq
+            - run:
+                command: |
+                  ip=$(curl -s https://api.ipify.org)
+                  echo "My public IP address is: $ip"
+          post-steps:
+            - store_artifacts:
+                path: "manifests/"
           path: "packer"
-          var: "region=us-east-1,environment=development"
+          var: "region=us-east-1,environment=development,security_group_name=CircleCI-SSHAccess"
+          except: "amazon-ebs.debian_arm64"
           context:
             - AWS-Write
             - Vagrant
@@ -100,9 +108,16 @@ workflows:
           name: "Generate Images (Production)"
           pre-steps:
             - run:
-                command: sudo apt-get update && sudo apt-get install -y ansible awscli
+                command: sudo apt-get update && sudo apt-get install -y ansible awscli jq
+            - run:
+                command: |
+                  ip=$(curl -s https://api.ipify.org)
+                  echo "My public IP address is: $ip"
+          post-steps:
+            - store_artifacts:
+                path: "manifests/"
           path: "packer"
-          var: "region=us-east-1,environment=production"
+          var: "region=us-east-1,environment=production,security_group_name=CircleCI-SSHAccess"
           except: "amazon-ebs.debian_arm64"
           context:
             - AWS-Write

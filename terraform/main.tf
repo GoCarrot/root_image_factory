@@ -29,16 +29,23 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 3.54"
     }
+
+    dns = {
+      source  = "hashicorp/dns"
+      version = "~> 3.2"
+    }
   }
 }
 
 locals {
+  service = "ServerImages"
+
   default_tags = {
     Managed     = "terraform"
     Environment = terraform.workspace
-    CostCenter  = "ServerImages"
-    Application = "ServerImages"
-    Service     = "ServerImages"
+    CostCenter  = local.service
+    Application = local.service
+    Service     = local.service
   }
 
   zones            = slice(sort(data.aws_availability_zones.azs.names), 0, var.az_count)
@@ -54,6 +61,8 @@ provider "aws" {
   }
 }
 
+provider "dns" {}
+
 data "aws_caller_identity" "admin" {
   provider = aws.admin
 }
@@ -61,7 +70,7 @@ data "aws_caller_identity" "admin" {
 data "aws_ssm_parameter" "role_arn" {
   provider = aws.admin
 
-  name = "${local.parameter_prefix}/admin_role_arn"
+  name = "${local.parameter_prefix}/roles/admin"
 }
 
 data "aws_caller_identity" "current" {}
@@ -307,82 +316,13 @@ resource "aws_iam_role_policy_attachment" "packer_attach" {
   policy_arn = aws_iam_policy.packer.arn
 }
 
-resource "aws_s3_bucket" "local_vm" {
-  bucket_prefix = "local-vm-storage-${data.aws_caller_identity.current.account_id}-"
-
-  versioning {
-    enabled = true
-  }
-
-  lifecycle_rule {
-    id      = "DeleteAll"
-    enabled = true
-
-    expiration {
-      days = 1
-    }
-
-    noncurrent_version_expiration {
-      days = 1
-    }
-  }
-
-  force_destroy = terraform.workspace == "development"
-}
-
-resource "aws_s3_bucket_public_access_block" "local_vm" {
-  bucket = aws_s3_bucket.local_vm.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
 
 data "aws_ssm_parameter" "ami_consumers" {
   provider = aws.admin
 
-  name = "${local.parameter_prefix}/ami_consumers"
+  name = "${local.parameter_prefix}/config/${local.service}/ami_consumers"
 }
 
-data "aws_iam_policy_document" "allow_bucket_read" {
-  statement {
-    effect    = "Allow"
-    actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.local_vm.arn}/*"]
-
-    principals {
-      type        = "AWS"
-      identifiers = [for id in split(",", data.aws_ssm_parameter.ami_consumers.value) : "arn:aws:iam::${id}:root"]
-    }
-  }
-}
-
-resource "aws_s3_bucket_policy" "allow_bucket_read" {
-  bucket = aws_s3_bucket.local_vm.id
-  policy = data.aws_iam_policy_document.allow_bucket_read.json
-
-  # Bucket policy and public access block cannot be "created" concurrently.
-  # By depending on the public access block we serialize application of the policy
-  # and public access block.
-  depends_on = [
-    aws_s3_bucket_public_access_block.local_vm
-  ]
-}
-
-# Allow Packer builds to upload files to our local_vm bucket
-data "aws_iam_policy_document" "allow_vm_upload" {
-  statement {
-    effect = "Allow"
-    actions = [
-      "s3:PutObject",
-      "s3:AbortMultipartUpload",
-    ]
-    resources = [
-      "${aws_s3_bucket.local_vm.arn}/*"
-    ]
-  }
-}
 
 data "aws_iam_policy_document" "allow_ec2_assume" {
   statement {
@@ -394,13 +334,6 @@ data "aws_iam_policy_document" "allow_ec2_assume" {
       identifiers = ["ec2.amazonaws.com"]
     }
   }
-}
-
-resource "aws_iam_policy" "allow_vm_upload" {
-  name        = "AllowUploadToLocalVM"
-  description = "Allows putting objects in the local vm storage bucket"
-
-  policy = data.aws_iam_policy_document.allow_vm_upload.json
 }
 
 data "aws_iam_policy_document" "log_access" {
@@ -443,11 +376,6 @@ resource "aws_iam_role" "vm_builder" {
   assume_role_policy = data.aws_iam_policy_document.allow_ec2_assume.json
 }
 
-resource "aws_iam_role_policy_attachment" "vm_builder_allow" {
-  role       = aws_iam_role.vm_builder.name
-  policy_arn = aws_iam_policy.allow_vm_upload.arn
-}
-
 resource "aws_iam_role_policy_attachment" "log_access" {
   role       = aws_iam_role.vm_builder.name
   policy_arn = aws_iam_policy.log_access.arn
@@ -461,7 +389,7 @@ resource "aws_iam_instance_profile" "vm_builder" {
 resource "aws_ssm_parameter" "packer_role" {
   provider = aws.admin
 
-  name = "${local.parameter_prefix}/packer_role_arn"
+  name = "${local.parameter_prefix}/roles/packer"
   type = "String"
 
   description = "Role to assume to execute packer"
@@ -472,7 +400,7 @@ resource "aws_ssm_parameter" "packer_role" {
 resource "aws_ssm_parameter" "vmbuilder_role" {
   provider = aws.admin
 
-  name = "${local.parameter_prefix}/instance_profile"
+  name = "${local.parameter_prefix}/config/${local.service}/instance_profile"
   type = "String"
 
   description = "Instance profile to assign to image builders in CI/CD"
@@ -480,13 +408,45 @@ resource "aws_ssm_parameter" "vmbuilder_role" {
   value = aws_iam_instance_profile.vm_builder.name
 }
 
-resource "aws_ssm_parameter" "vm_bucket" {
+resource "aws_ssm_parameter" "connection_arn" {
   provider = aws.admin
 
-  name = "${local.parameter_prefix}/vm_bucket_id"
+  name = "${local.parameter_prefix}/config/core/github_connection_arn"
   type = "String"
 
-  description = "ID of S3 bucket that local use VM images are uploaded to"
+  description = "ARN of the CodeStar connection to our GitHub account"
 
-  value = aws_s3_bucket.local_vm.id
+  value = aws_codestarconnections_connection.github.arn
+}
+
+resource "aws_codestarconnections_connection" "github" {
+  name          = "github-connection"
+  provider_type = "GitHub"
+}
+
+data "dns_a_record_set" "circleci-ips" {
+  host = "all.knownips.circleci.com"
+}
+
+resource "aws_security_group" "circleci-ssh" {
+  name        = "CircleCI-SSHAccess"
+  description = "Allows SSH access from known CirlceCI IPs"
+
+  vpc_id = aws_vpc.build.id
+
+  ingress {
+    description = "SSH from CircleCI"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = formatlist("%s/32", data.dns_a_record_set.circleci-ips.addrs)
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
 }

@@ -71,31 +71,31 @@ variable "source_ami_name_prefix" {
 variable "vagrant_cloud_version" {
   type        = string
   description = "The version of the published vagrant box. Anything after a '-' will be removed in production."
-  default     = "0.0.2-${env("CIRCLE_WORKFLOW_ID")}"
+  default     = "11.2.0-${env("CIRCLE_WORKFLOW_ID")}"
+}
+
+variable "security_group_name" {
+  type        = string
+  description = "The name of the security group to attach to builder instances. Leave blank to use Packer generated security groups."
+  default     = ""
 }
 
 data "amazon-parameterstore" "role_arn" {
   region = var.region
 
-  name = "/teak/${var.environment}/ci-cd/packer_role_arn"
+  name = "/teak/${var.environment}/ci-cd/roles/packer"
 }
 
 data "amazon-parameterstore" "instance_profile" {
   region = var.region
 
-  name = "/teak/${var.environment}/ci-cd/instance_profile"
-}
-
-data "amazon-parameterstore" "local_vm_bucket" {
-  region = var.region
-
-  name = "/teak/${var.environment}/ci-cd/vm_bucket_id"
+  name = "/teak/${var.environment}/ci-cd/config/ServerImages/instance_profile"
 }
 
 data "amazon-parameterstore" "ami_users" {
   region = var.region
 
-  name = "/teak/${var.environment}/ci-cd/ami_consumers"
+  name = "/teak/${var.environment}/ci-cd/config/ServerImages/ami_consumers"
 }
 
 # Pull the latest Debian 11 AMI
@@ -145,6 +145,16 @@ source "amazon-ebssurrogate" "debian" {
     }
 
     random = true
+  }
+
+  dynamic "security_group_filter" {
+    for_each = [for s in [var.security_group_name] : s if s != ""]
+
+    content {
+      filters = {
+        "group-name" = var.security_group_name
+      }
+    }
   }
 
   run_volume_tags = {
@@ -232,6 +242,16 @@ source "amazon-ebs" "debian" {
     random = true
   }
 
+  dynamic "security_group_filter" {
+    for_each = [for s in [var.security_group_name] : s if s != ""]
+
+    content {
+      filters = {
+        "group-name" = var.security_group_name
+      }
+    }
+  }
+
   run_volume_tags = {
     Managed     = "packer"
     Environment = var.environment
@@ -284,7 +304,7 @@ build {
 
     content {
       name             = "debian_${arch.key}"
-      ami_name         = "${var.environment}-${var.ami_prefix}-${arch.key}-${local.timestamp}"
+      ami_name         = "${var.environment}_${var.ami_prefix}_${arch.key}.${local.timestamp}"
       instance_type    = var.instance_type[arch.key]
       ami_architecture = arch.key
 
@@ -299,7 +319,7 @@ build {
 
     content {
       name             = "debian_${arch.key}"
-      ami_name         = "temp-${var.environment}-${var.ami_prefix}-${arch.key}-${local.timestamp}"
+      ami_name         = "temp-${var.environment}_${var.ami_prefix}_${arch.key}.${local.timestamp}"
       instance_type    = var.instance_type[arch.key]
 
       source_ami = local.source_ami[arch.key]
@@ -339,8 +359,65 @@ build {
         "cd /build/debian-cloud-images",
         "make vmware_bullseye_vagrant_${arch.value}",
         "gzip vmware_bullseye_vagrant_${arch.value}.vmdk",
-        "aws s3 cp vmware_bullseye_vagrant_${arch.value}.vmdk.gz s3://${data.amazon-parameterstore.local_vm_bucket.value}/vmware_bullseye_vagrant_${arch.value}.vmdk.gz"
       ]
+    }
+  }
+
+  # Download VM image
+  dynamic "provisioner" {
+    for_each = local.arch_map
+    iterator = arch
+    labels   = ["file"]
+
+    content {
+      only        = ["amazon-ebs.debian_${arch.key}"]
+      source      = "/build/debian-cloud-images/vmware_bullseye_vagrant_${arch.value}.vmdk.gz"
+      destination = "${path.root}/build/vmware_bullseye_vagrant_${arch.value}.vmdk.gz"
+      direction   = "download"
+    }
+  }
+
+
+  # Get manifest for EC2 builds
+  dynamic "provisioner" {
+    for_each = local.arch_map
+    iterator = arch
+    labels   = ["file"]
+
+    content {
+      only        = ["amazon-ebssurrogate.debian_${arch.key}"]
+      source      = "/build/debian-cloud-images/image_bullseye_ec2_${arch.value}.build.json"
+      destination = "raw_manifests/ec2_${source.name}.json"
+      direction   = "download"
+    }
+  }
+
+  dynamic "provisioner" {
+    for_each = local.arch_map
+    iterator = arch
+    labels   = ["shell-local"]
+
+    content {
+      only = ["amazon-ebssurrogate.debian_${arch.key}"]
+      inline = [
+        # Parse our manifest into the format used by downstream builders
+        "mkdir -p manifests",
+        "cat raw_manifests/ec2_${source.name}.json | jq --raw-output \".data.packages[] | \\\"\\(.name)$(printf \"\t\")\\(.version)\\\"\" > manifests/ec2_${source.name}.txt"
+      ]
+    }
+  }
+
+  # Get manifest for vagrant builds
+  dynamic "provisioner" {
+    for_each = local.arch_map
+    iterator = arch
+    labels   = ["file"]
+
+    content {
+      only        = ["amazon-ebs.debian_${arch.key}"]
+      source      = "/build/debian-cloud-images/image_bullseye_vagrant_${arch.value}.build.json"
+      destination = "raw_manifests/vagrant_${source.name}.json"
+      direction   = "download"
     }
   }
 
@@ -352,7 +429,9 @@ build {
     content {
       only = ["amazon-ebs.debian_${arch.key}"]
       inline = [
-        "aws s3 cp s3://${data.amazon-parameterstore.local_vm_bucket.value}/vmware_bullseye_vagrant_${arch.value}.vmdk.gz ${path.root}/build/vmware_bullseye_vagrant_${arch.value}.vmdk.gz",
+        # Parse our manifest into the format used by downstream builders
+        "mkdir -p manifests",
+        "cat raw_manifests/vagrant_${source.name}.json | jq --raw-output \".data.packages[] | \\\"\\(.name)$(printf \"\t\")\\(.version)\\\"\" > manifests/vargrant_${source.name}.txt",
         "gunzip ${path.root}/build/vmware_bullseye_vagrant_${arch.value}.vmdk.gz",
         "cp ${path.root}/vm_configs/vagrant.vmx ${path.root}/build/vagrant_${arch.value}.vmx",
         "sed -i -e 's/^scsi0:0.fileName = DISK_IMAGE/scsi0:0.fileName = \"vmware_bullseye_vagrant_${arch.value}.vmdk\"/' ${path.root}/build/vagrant_${arch.value}.vmx"
