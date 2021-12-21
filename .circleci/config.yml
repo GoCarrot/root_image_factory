@@ -71,6 +71,7 @@ workflows:
                 path: "manifests/"
           path: "packer"
           var: "region=us-east-1,environment=development,security_group_name=CircleCI-SSHAccess"
+          except: "amazon-ebs.debian_arm64"
           context:
             - AWS-Write
             - Vagrant
