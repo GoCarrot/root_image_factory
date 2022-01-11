@@ -41,3 +41,9 @@ variable "ancillary_log_groups" {
   type        = list(string)
   default     = ["fluentd", "systemd", "cloudinit"]
 }
+
+variable "organization_prefix" {
+  description = "The prefix to give to all parameters and log groups for organiztion."
+  type        = string
+  default     = "teak"
+}
