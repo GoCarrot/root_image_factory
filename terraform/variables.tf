@@ -39,7 +39,7 @@ variable "log_retention_days" {
 variable "ancillary_log_groups" {
   description = "A list of services to collect logs from on build machines"
   type        = list(string)
-  default     = ["fluentd", "systemd", "cloudinit"]
+  default     = ["fluentd", "systemd", "cloudinit", "configurator", "newrelic-infra"]
 }
 
 variable "organization_prefix" {

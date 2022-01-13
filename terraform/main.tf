@@ -346,8 +346,7 @@ data "aws_iam_policy_document" "log_access" {
     ]
     resources = [
       "arn:aws:logs:*:*:log-group:/${var.organization_prefix}/server/&{aws:PrincipalTag/Environment}/ancillary/*",
-      "arn:aws:logs:*:*:log-group:/${var.organization_prefix}/server/&{aws:PrincipalTag/Environment}/service/&{aws:PrincipalTag/Service}",
-      "arn:aws:logs:*:*:log-group:/${var.organization_prefix}/server/&{aws:PrincipalTag/Environment}/service/&{aws:PrincipalTag/Service}/*"
+      "arn:aws:logs:*:*:log-group:/${var.organization_prefix}/server/&{aws:PrincipalTag/Environment}/service/*",
     ]
   }
 
@@ -370,8 +369,7 @@ data "aws_iam_policy_document" "log_access" {
     ]
     resources = [
       "arn:aws:logs:*:*:log-group:/${var.organization_prefix}/server/&{aws:PrincipalTag/Environment}/ancillary/*:log-stream:*",
-      "arn:aws:logs:*:*:log-group:/${var.organization_prefix}/server/&{aws:PrincipalTag/Environment}/service/&{aws:PrincipalTag/Service}:log-stream:&{aws:PrincipalTag/Service}.*",
-      "arn:aws:logs:*:*:log-group:/${var.organization_prefix}/server/&{aws:PrincipalTag/Environment}/service/&{aws:PrincipalTag/Service}/*:log-stream:&{aws:PrincipalTag/Service}.*"
+      "arn:aws:logs:*:*:log-group:/${var.organization_prefix}/server/&{aws:PrincipalTag/Environment}/service/*:log-stream:*",
     ]
   }
 }
