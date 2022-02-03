@@ -14,8 +14,11 @@
 
 version: 2.1
 
+setup: true
+
 orbs:
-  teak: teak/sdk-utils@0.2
+  teak: teak/sdk-utils@dev:alpha
+  continuation: circleci/continuation@0.2
 
 jobs:
   setup:
@@ -44,39 +47,21 @@ workflows:
           context: AWS-Write
           requires:
             - setup
-      - hold:
-          name: "Human, your approval is required (Development)"
-          type: approval
-          requires:
-            - "Plan (Development)"
-      - teak/terraform-apply:
-          name: "Apply (Development)"
-          path: "terraform"
-          workspace: "development"
-          context: AWS-Write
-          requires:
-            - "Human, your approval is required (Development)"
-      - teak/packer-build:
-          version: 1.7.5
-          name: "Generate Images (Development)"
-          pre-steps:
-            - run:
-                command: sudo apt-get update && sudo apt-get install -y ansible awscli jq
+          post-steps:
             - run:
                 command: |
-                  ip=$(curl -s https://api.ipify.org)
-                  echo "My public IP address is: $ip"
-          post-steps:
-            - store_artifacts:
-                path: "manifests/"
-          path: "packer"
-          var: "region=us-east-1,environment=development,security_group_name=CircleCI-SSHAccess"
-          except: "amazon-ebs.debian_arm64"
-          context:
-            - AWS-Write
-            - Vagrant
-          requires:
-            - "Apply (Development)"
+                  if [ -f /tmp/teak-orb-terraform/tf_plan_changes ]; then
+                    echo "{\"run-apply\":true, \"cache-id\": \"${CIRCLE_WORKFLOW_ID}\"}" > continue_params.json
+                  else
+                    echo '{}' > continue_params.json
+                  fi
+            - save_cache:
+                key: "{{ .Environment.CIRCLE_WORKFLOW_ID }}"
+                paths:
+                  - /tmp/teak-orb-terraform/teak-orb-terraform.plan
+            - continuation/continue:
+                configuration_path: .circleci/continue-development.yml
+                parameters: continue_params.json
   build-production:
     jobs:
       - setup:
