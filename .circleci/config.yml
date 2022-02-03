@@ -17,8 +17,7 @@ version: 2.1
 setup: true
 
 orbs:
-  teak: teak/sdk-utils@0.2
-  continuation: circleci/continuation@0.2
+  teak: teak/sdk-utils@dev:alpha
 
 jobs:
   setup:
@@ -48,10 +47,6 @@ workflows:
           context: AWS-Write
           requires:
             - setup
-          post-steps:
-            - continuation/continue:
-                configuration_path: .circleci/continue.yml
-                parameters: continue_params.json
       - teak/terraform-plan:
           <<: *terraform-plan
           filters:
