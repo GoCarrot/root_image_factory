@@ -35,12 +35,12 @@ workflows:
   version: 2
   build-development:
     jobs:
-      - setup:
+      - setup
+      - teak/terraform-plan:
           filters:
             branches:
               only:
                 - develop
-      - teak/terraform-plan:
           name: "Plan (Development)"
           path: "terraform"
           workspace: "development"
@@ -51,7 +51,7 @@ workflows:
             - run:
                 command: |
                   if [ -f /tmp/teak-orb-terraform/tf_plan_changes ]; then
-                    echo "{\"run-apply\":true, \"cache-id\": \"${CIRCLE_WORKFLOW_ID}\"}" > continue_params.json
+                    echo "{\"run-apply\":true, \"cache-id\": \"${CIRCLE_WORKFLOW_ID}\", \"workflow-type\":\"development\"}" > continue_params.json
                   else
                     echo '{}' > continue_params.json
                   fi
@@ -60,5 +60,31 @@ workflows:
                 paths:
                   - /tmp/teak-orb-terraform/teak-orb-terraform.tfplan
             - continuation/continue:
-                configuration_path: .circleci/continue-development.yml
+                configuration_path: .circleci/continue.yml
                 parameters: continue_params.json
+      - teak/terraform-plan:
+            filters:
+              branches:
+                only:
+                  - main
+            name: "Plan (Production)"
+            path: "terraform"
+            workspace: "production"
+            context: AWS-Write
+            requires:
+              - setup
+            post-steps:
+              - run:
+                  command: |
+                    if [ -f /tmp/teak-orb-terraform/tf_plan_changes ]; then
+                      echo "{\"run-apply\":true, \"cache-id\": \"${CIRCLE_WORKFLOW_ID}\", \"workflow-type\":\"production\"}" > continue_params.json
+                    else
+                      echo '{}' > continue_params.json
+                    fi
+              - save_cache:
+                  key: "{{ .Environment.CIRCLE_WORKFLOW_ID }}"
+                  paths:
+                    - /tmp/teak-orb-terraform/teak-orb-terraform.tfplan
+              - continuation/continue:
+                  configuration_path: .circleci/continue.yml
+                  parameters: continue_params.json

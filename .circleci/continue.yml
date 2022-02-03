@@ -24,6 +24,9 @@ parameters:
   cache-id:
     type: string
     default: ""
+  workflow-type:
+    type: string
+    default: ""
 
 workflows:
   version: 2
@@ -31,21 +34,21 @@ workflows:
     when: << pipeline.parameters.run-apply >>
     jobs:
       - hold:
-          name: "Human, your approval is required (Development)"
+          name: "Human, your approval is required (<< pipeline.parameters.workflow-type >>)"
           type: approval
       - teak/terraform-apply:
           pre-steps:
             - restore_cache:
                 key: << pipeline.parameters.cache-id >>
-          name: "Apply (Development)"
+          name: "Apply (<< pipeline.parameters.workflow-type >>)"
           path: "terraform"
-          workspace: "development"
+          workspace: << pipeline.parameters.workflow-type >>
           context: AWS-Write
           requires:
-            - "Human, your approval is required (Development)"
+            - "Human, your approval is required (<< pipeline.parameters.workflow-type >>)"
       - teak/packer-build: &packer-build
           version: 1.7.5
-          name: "Generate Images (Development)"
+          name: "Generate Images (<< pipeline.parameters.workflow-type >>)"
           pre-steps:
             - run:
                 command: sudo apt-get update && sudo apt-get install -y ansible awscli jq
@@ -57,13 +60,13 @@ workflows:
             - store_artifacts:
                 path: "manifests/"
           path: "packer"
-          var: "region=us-east-1,environment=development,security_group_name=CircleCI-SSHAccess"
+          var: "region=us-east-1,environment=<< pipeline.parameters.workflow-type >>,security_group_name=CircleCI-SSHAccess"
           except: "amazon-ebs.debian_arm64"
           context:
             - AWS-Write
             - Vagrant
           requires:
-            - "Apply (Development)"
+            - "Apply (<< pipeline.parameters.workflow-type >>)"
   build-development:
     when:
       not: << pipeline.parameters.run-apply >>
