@@ -36,7 +36,7 @@ workflows:
   terraform-plan:
     jobs:
       - setup
-      - teak/terraform-plan:
+      - teak/terraform-plan: &terraform-plan
           filters:
             branches:
               only:
@@ -44,47 +44,20 @@ workflows:
           name: "Plan (Development)"
           path: "terraform"
           workspace: "development"
+          continuation_workflow_type: "development"
           context: AWS-Write
           requires:
             - setup
           post-steps:
-            - run:
-                command: |
-                  if [ -f /tmp/teak-orb-terraform/tf_plan_changes ]; then
-                    echo "{\"run-apply\":true, \"cache-id\": \"${CIRCLE_WORKFLOW_ID}\", \"workflow-type\":\"development\", \"plan-log-url\":\"${CIRCLE_BUILD_URL}/artifacts/${CIRCLE_NODE_INDEX}/tmp/teak-orb-terraform/teak-orb-terraform.plan.log\"}" > continue_params.json
-                  else
-                    echo "{\"workflow-type\":\"development\"}" > continue_params.json
-                  fi
-            - save_cache:
-                key: "{{ .Environment.CIRCLE_WORKFLOW_ID }}"
-                paths:
-                  - /tmp/teak-orb-terraform/teak-orb-terraform.tfplan
             - continuation/continue:
                 configuration_path: .circleci/continue.yml
                 parameters: continue_params.json
       - teak/terraform-plan:
-            filters:
-              branches:
-                only:
-                  - main
-            name: "Plan (Production)"
-            path: "terraform"
-            workspace: "production"
-            context: AWS-Write
-            requires:
-              - setup
-            post-steps:
-              - run:
-                  command: |
-                    if [ -f /tmp/teak-orb-terraform/tf_plan_changes ]; then
-                      echo "{\"run-apply\":true, \"cache-id\": \"${CIRCLE_WORKFLOW_ID}\", \"workflow-type\":\"production\", \"plan-log-url\":\"${CIRCLE_BUILD_URL}/artifacts/${CIRCLE_NODE_INDEX}/tmp/teak-orb-terraform/teak-orb-terraform.plan.log\"}" > continue_params.json
-                    else
-                      echo "{\"workflow-type\":\"production\"}" > continue_params.json
-                    fi
-              - save_cache:
-                  key: "{{ .Environment.CIRCLE_WORKFLOW_ID }}"
-                  paths:
-                    - /tmp/teak-orb-terraform/teak-orb-terraform.tfplan
-              - continuation/continue:
-                  configuration_path: .circleci/continue.yml
-                  parameters: continue_params.json
+          <<: *terraform-plan
+          filters:
+            branches:
+              only:
+                - main
+          name: "Plan (Production)"
+          workspace: "production"
+          continuation_workflow_type: "production"
