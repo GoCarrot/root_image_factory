@@ -38,6 +38,9 @@ workflows:
     when: << pipeline.parameters.run-apply >>
     jobs:
       - slack/on-hold:
+          pre-steps:
+            - run:
+                command: PLAN_LOG=<< pipeline.parameters.plan-log-url >>
           context:
             - Slack
           custom: |
@@ -56,27 +59,13 @@ workflows:
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "\<<< pipeline.parameters.plan-log-url >>|Terraform Plan Log>"
+                      "text": "<${PLAN_LOG}|Terraform Plan Log>"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "<https://app.circleci.com/pipelines/workflows/${CIRCLE_WORKFLOW_ID}|View Workflow>"
                     }
                   ]
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "Visit workflow to approve (or cancel)"
-                  },
-                  "accessory": {
-                    "type": "button",
-                    "text": {
-                      "type": "plain_text",
-                      "text": "View Workflow",
-                      "emoji": true
-                    },
-                    "value": "click_me_123",
-                    "url": "https://app.circleci.com/pipelines/workflows/${CIRCLE_WORKFLOW_ID}",
-                    "action_id": "button-action"
-                  }
                 }
               ]
             }
