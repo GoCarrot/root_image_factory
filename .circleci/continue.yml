@@ -1,0 +1,114 @@
+# Copyright 2021 Teak.io, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+version: 2.1
+
+orbs:
+  teak: teak/sdk-utils@0.2
+  slack: circleci/slack@4
+
+parameters:
+  run-apply:
+    type: boolean
+    default: false
+  cache-id:
+    type: string
+    default: ""
+  workflow-type:
+    type: string
+    default: ""
+  plan-log-url:
+    type: string
+    default: ""
+
+workflows:
+  version: 2
+  apply-and-build:
+    when: << pipeline.parameters.run-apply >>
+    jobs:
+      - slack/on-hold:
+          pre-steps:
+            - run:
+                command: echo 'export PLAN_LOG=<< pipeline.parameters.plan-log-url >>' >> $BASH_ENV
+          context:
+            - Slack
+          custom: |
+            {
+              "text": "${CIRCLE_PROJECT_REPONAME} ${CIRCLE_BRANCH} job on hold, waiting for approval.",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "${CIRCLE_PROJECT_REPONAME} ${CIRCLE_BRANCH} job on hold, waiting for approval. :raised_hand:",
+                    "emoji": true
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "<${PLAN_LOG}|Terraform Plan Log>"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "<https://app.circleci.com/pipelines/workflows/${CIRCLE_WORKFLOW_ID}|View Workflow>"
+                    }
+                  ]
+                }
+              ]
+            }
+          template: ""
+      - hold:
+          name: "Human, your approval is required (<< pipeline.parameters.workflow-type >>)"
+          type: approval
+          requires:
+            - slack/on-hold
+      - teak/terraform-apply:
+          name: "Apply (<< pipeline.parameters.workflow-type >>)"
+          continuation_cache: << pipeline.parameters.cache-id >>
+          path: "terraform"
+          workspace: << pipeline.parameters.workflow-type >>
+          context: AWS-Write
+          requires:
+            - "Human, your approval is required (<< pipeline.parameters.workflow-type >>)"
+      - teak/packer-build: &packer-build
+          version: 1.7.5
+          name: "Generate Images (<< pipeline.parameters.workflow-type >>)"
+          pre-steps:
+            - run:
+                command: sudo apt-get update && sudo apt-get install -y ansible awscli jq
+            - run:
+                command: |
+                  ip=$(curl -s https://api.ipify.org)
+                  echo "My public IP address is: $ip"
+          post-steps:
+            - store_artifacts:
+                path: "manifests/"
+          path: "packer"
+          var: "region=us-east-1,environment=<< pipeline.parameters.workflow-type >>,security_group_name=CircleCI-SSHAccess"
+          except: "amazon-ebs.debian_arm64"
+          context:
+            - AWS-Write
+            - Vagrant
+          requires:
+            - "Apply (<< pipeline.parameters.workflow-type >>)"
+  build-only:
+    when:
+      not: << pipeline.parameters.run-apply >>
+    jobs:
+      - teak/packer-build:
+          <<: *packer-build
+          requires: []

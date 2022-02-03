@@ -14,8 +14,11 @@
 
 version: 2.1
 
+setup: true
+
 orbs:
   teak: teak/sdk-utils@0.2
+  continuation: circleci/continuation@0.2
 
 jobs:
   setup:
@@ -30,97 +33,31 @@ jobs:
 
 workflows:
   version: 2
-  build-development:
+  terraform-plan:
     jobs:
-      - setup:
+      - setup
+      - teak/terraform-plan: &terraform-plan
           filters:
             branches:
               only:
                 - develop
-      - teak/terraform-plan:
           name: "Plan (Development)"
           path: "terraform"
           workspace: "development"
+          continuation_workflow_type: "development"
           context: AWS-Write
           requires:
             - setup
-      - hold:
-          name: "Human, your approval is required (Development)"
-          type: approval
-          requires:
-            - "Plan (Development)"
-      - teak/terraform-apply:
-          name: "Apply (Development)"
-          path: "terraform"
-          workspace: "development"
-          context: AWS-Write
-          requires:
-            - "Human, your approval is required (Development)"
-      - teak/packer-build:
-          version: 1.7.5
-          name: "Generate Images (Development)"
-          pre-steps:
-            - run:
-                command: sudo apt-get update && sudo apt-get install -y ansible awscli jq
-            - run:
-                command: |
-                  ip=$(curl -s https://api.ipify.org)
-                  echo "My public IP address is: $ip"
           post-steps:
-            - store_artifacts:
-                path: "manifests/"
-          path: "packer"
-          var: "region=us-east-1,environment=development,security_group_name=CircleCI-SSHAccess"
-          except: "amazon-ebs.debian_arm64"
-          context:
-            - AWS-Write
-            - Vagrant
-          requires:
-            - "Apply (Development)"
-  build-production:
-    jobs:
-      - setup:
+            - continuation/continue:
+                configuration_path: .circleci/continue.yml
+                parameters: continue_params.json
+      - teak/terraform-plan:
+          <<: *terraform-plan
           filters:
             branches:
               only:
                 - main
-      - teak/terraform-plan:
           name: "Plan (Production)"
-          path: "terraform"
           workspace: "production"
-          context: AWS-Write
-          requires:
-            - setup
-      - hold:
-          name: "Human, your approval is required (Production)"
-          type: approval
-          requires:
-            - "Plan (Production)"
-      - teak/terraform-apply:
-          name: "Apply (Production)"
-          path: "terraform"
-          workspace: "production"
-          context: AWS-Write
-          requires:
-            - "Human, your approval is required (Production)"
-      - teak/packer-build:
-          version: 1.7.5
-          name: "Generate Images (Production)"
-          pre-steps:
-            - run:
-                command: sudo apt-get update && sudo apt-get install -y ansible awscli jq
-            - run:
-                command: |
-                  ip=$(curl -s https://api.ipify.org)
-                  echo "My public IP address is: $ip"
-          post-steps:
-            - store_artifacts:
-                path: "manifests/"
-          path: "packer"
-          var: "region=us-east-1,environment=production,security_group_name=CircleCI-SSHAccess"
-          except: "amazon-ebs.debian_arm64"
-          context:
-            - AWS-Write
-            - Vagrant
-          requires:
-            - "Apply (Production)"
+          continuation_workflow_type: "production"
