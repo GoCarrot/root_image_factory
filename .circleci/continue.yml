@@ -15,7 +15,7 @@
 version: 2.1
 
 orbs:
-  teak: teak/sdk-utils@0.2
+  teak: teak/sdk-utils@dev:alpha
   slack: circleci/slack@4
 
 parameters:
@@ -32,50 +32,30 @@ parameters:
     type: string
     default: ""
 
+jobs:
+  - on-hold-message:
+      docker:
+        - image: cimg/base:2021.04
+      resource_class: small
+      context:
+        - Slack
+      steps:
+        - teak/terraform-slack-on-hold-message:
+            plan-log-url: << pipeline.parameters.plan-log-url >>
+        - slack/notify:
+            template: TEAK_TF_ON_HOLD
+
 workflows:
   version: 2
   apply-and-build:
     when: << pipeline.parameters.run-apply >>
     jobs:
-      - slack/on-hold:
-          pre-steps:
-            - run:
-                command: echo 'export PLAN_LOG=<< pipeline.parameters.plan-log-url >>' >> $BASH_ENV
-          context:
-            - Slack
-          custom: |
-            {
-              "text": "${CIRCLE_PROJECT_REPONAME} ${CIRCLE_BRANCH} job on hold, waiting for approval.",
-              "blocks": [
-                {
-                  "type": "header",
-                  "text": {
-                    "type": "plain_text",
-                    "text": "${CIRCLE_PROJECT_REPONAME} ${CIRCLE_BRANCH} job on hold, waiting for approval. :raised_hand:",
-                    "emoji": true
-                  }
-                },
-                {
-                  "type": "section",
-                  "fields": [
-                    {
-                      "type": "mrkdwn",
-                      "text": "<${PLAN_LOG}|Terraform Plan Log>"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "<https://app.circleci.com/pipelines/workflows/${CIRCLE_WORKFLOW_ID}|View Workflow>"
-                    }
-                  ]
-                }
-              ]
-            }
-          template: ""
+      - on-hold-message
       - hold:
           name: "Human, your approval is required (<< pipeline.parameters.workflow-type >>)"
           type: approval
           requires:
-            - slack/on-hold
+            - on-hold-message
       - teak/terraform-apply:
           name: "Apply (<< pipeline.parameters.workflow-type >>)"
           continuation_cache: << pipeline.parameters.cache-id >>
