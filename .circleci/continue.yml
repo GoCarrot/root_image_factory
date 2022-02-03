@@ -45,6 +45,7 @@ workflows:
             - Slack
           custom: |
             {
+              "text": "${CIRCLE_PROJECT_REPONAME} ${CIRCLE_BRANCH} job on hold, waiting for approval.",
               "blocks": [
                 {
                   "type": "header",
