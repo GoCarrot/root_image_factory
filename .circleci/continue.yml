@@ -77,6 +77,7 @@ workflows:
           requires:
             - slack/on-hold
       - teak/terraform-apply:
+          name: "Apply (<< pipeline.parameters.workflow-type >>)"
           continuation_cache: << pipeline.parameters.cache-id >>
           path: "terraform"
           workspace: << pipeline.parameters.workflow-type >>
