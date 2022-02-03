@@ -30,7 +30,7 @@ parameters:
 
 workflows:
   version: 2
-  apply-and-build-development:
+  apply-and-build:
     when: << pipeline.parameters.run-apply >>
     jobs:
       - hold:
@@ -67,7 +67,7 @@ workflows:
             - Vagrant
           requires:
             - "Apply (<< pipeline.parameters.workflow-type >>)"
-  build-development:
+  build-only:
     when:
       not: << pipeline.parameters.run-apply >>
     jobs:
