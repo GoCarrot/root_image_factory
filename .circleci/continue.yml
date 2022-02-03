@@ -16,6 +16,7 @@ version: 2.1
 
 orbs:
   teak: teak/sdk-utils@dev:alpha
+  slack: circleci/slack@4
 
 parameters:
   run-apply:
@@ -27,15 +28,62 @@ parameters:
   workflow-type:
     type: string
     default: ""
+  plan-log-url:
+    type: string
+    default: ""
 
 workflows:
   version: 2
   apply-and-build:
     when: << pipeline.parameters.run-apply >>
     jobs:
+      - slack/on-hold:
+          custom: |
+            {
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "${CIRCLE_PROJECT_REPONAME} ${CIRCLE_BRANCH} job on hold, waiting for approval. :raised_hand:",
+                    "emoji": true
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "\<<< pipeline.parameters.plan-log-url >>|Terraform Plan Log>"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "Visit workflow to approve (or cancel)"
+                  },
+                  "accessory": {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "View Workflow",
+                      "emoji": true
+                    },
+                    "value": "click_me_123",
+                    "url": "https://app.circleci.com/pipelines/workflows/${CIRCLE_WORKFLOW_ID}",
+                    "action_id": "button-action"
+                  }
+                }
+              ]
+            }
+          template: ""
       - hold:
           name: "Human, your approval is required (<< pipeline.parameters.workflow-type >>)"
           type: approval
+          requires:
+            - slack/on-hold
       - teak/terraform-apply:
           pre-steps:
             - restore_cache:
