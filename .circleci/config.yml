@@ -45,17 +45,15 @@ workflows:
           path: "terraform"
           workspace: "development"
           context: AWS-Write
-          environment:
-            WORKFLOW_TYPE: "development"
           requires:
             - setup
-          post-steps: &post-steps
+          post-steps:
             - run:
                 command: |
                   if [ -f /tmp/teak-orb-terraform/tf_plan_changes ]; then
-                    echo "{\"run-apply\":true, \"cache-id\": \"${CIRCLE_WORKFLOW_ID}\", \"workflow-type\":\"${WORKFLOW_TYPE}\"}" > continue_params.json
+                    echo "{\"run-apply\":true, \"cache-id\": \"${CIRCLE_WORKFLOW_ID}\", \"workflow-type\":\"development\"}" > continue_params.json
                   else
-                    echo '{\"workflow-type\":\"${WORKFLOW_TYPE}\"}' > continue_params.json
+                    echo '{\"workflow-type\":\"development\"}' > continue_params.json
                   fi
             - save_cache:
                 key: "{{ .Environment.CIRCLE_WORKFLOW_ID }}"
@@ -73,8 +71,20 @@ workflows:
             path: "terraform"
             workspace: "production"
             context: AWS-Write
-            environment:
-              WORKFLOW_TYPE: "production"
             requires:
               - setup
-            post-steps: *post-steps
+            post-steps:
+              - run:
+                  command: |
+                    if [ -f /tmp/teak-orb-terraform/tf_plan_changes ]; then
+                      echo "{\"run-apply\":true, \"cache-id\": \"${CIRCLE_WORKFLOW_ID}\", \"workflow-type\":\"production\"}" > continue_params.json
+                    else
+                      echo '{\"workflow-type\":\"production\"}' > continue_params.json
+                    fi
+              - save_cache:
+                  key: "{{ .Environment.CIRCLE_WORKFLOW_ID }}"
+                  paths:
+                    - /tmp/teak-orb-terraform/teak-orb-terraform.tfplan
+              - continuation/continue:
+                  configuration_path: .circleci/continue.yml
+                  parameters: continue_params.json
