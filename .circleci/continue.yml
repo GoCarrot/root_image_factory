@@ -33,24 +33,24 @@ parameters:
     default: ""
 
 jobs:
-  - on-hold-message:
-      docker:
-        - image: cimg/base:2021.04
-      resource_class: small
-      context:
-        - Slack
-      steps:
-        - teak/terraform-slack-on-hold-message:
-            plan-log-url: << pipeline.parameters.plan-log-url >>
-        - slack/notify:
-            template: TEAK_TF_ON_HOLD
+  on-hold-message:
+    docker:
+      - image: cimg/base:2021.04
+    resource_class: small
+    steps:
+      - teak/terraform-slack-on-hold-message:
+          plan-log-url: << pipeline.parameters.plan-log-url >>
+      - slack/notify:
+          template: TEAK_TF_ON_HOLD
 
 workflows:
   version: 2
   apply-and-build:
     when: << pipeline.parameters.run-apply >>
     jobs:
-      - on-hold-message
+      - on-hold-message:
+          context:
+            - Slack
       - hold:
           name: "Human, your approval is required (<< pipeline.parameters.workflow-type >>)"
           type: approval
