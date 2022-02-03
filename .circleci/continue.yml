@@ -40,7 +40,7 @@ workflows:
       - slack/on-hold:
           pre-steps:
             - run:
-                command: PLAN_LOG=<< pipeline.parameters.plan-log-url >>
+                command: echo 'export PLAN_LOG=<< pipeline.parameters.plan-log-url >>' >> $BASH_ENV
           context:
             - Slack
           custom: |
