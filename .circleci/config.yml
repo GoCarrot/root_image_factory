@@ -58,7 +58,7 @@ workflows:
             - save_cache:
                 key: "{{ .Environment.CIRCLE_WORKFLOW_ID }}"
                 paths:
-                  - /tmp/teak-orb-terraform/teak-orb-terraform.plan
+                  - /tmp/teak-orb-terraform/teak-orb-terraform.tfplan
             - continuation/continue:
                 configuration_path: .circleci/continue-development.yml
                 parameters: continue_params.json
