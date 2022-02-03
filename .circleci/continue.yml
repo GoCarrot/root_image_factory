@@ -38,6 +38,8 @@ workflows:
     when: << pipeline.parameters.run-apply >>
     jobs:
       - slack/on-hold:
+          context:
+            - Slack
           custom: |
             {
               "blocks": [
