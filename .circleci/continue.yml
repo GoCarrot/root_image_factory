@@ -80,6 +80,17 @@ workflows:
     when:
       not: << pipeline.parameters.run-apply >>
     jobs:
+      - teak/terraform-output:
+          path: "terraform"
+          workspace: << pipeline.parameters.workflow-type >>
+          context: AWS
       - teak/packer-build:
           <<: *packer-build
-          requires: []
+          pre-steps:
+            - teak/terraform-restore-output
+            - run:
+                name: "Test params"
+                command: |
+                  echo $TF_OUT_PACKER_ROLE_ARN
+          requires:
+            - teak/terraform-output
