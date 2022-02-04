@@ -70,7 +70,7 @@ workflows:
             - store_artifacts:
                 path: "manifests/"
           path: "packer"
-          var: "region=$TF_OUT_REGION,environment=$TF_OUT_ENVIRONMENT,security_group_name=$TF_OUT_CIRCLECI_SECURITY_GROUP_NAME"
+          var: "region=$TF_OUT_REGION,environment=$TF_OUT_ENVIRONMENT,security_group_name=$TF_OUT_CIRCLECI_SECURITY_GROUP_NAME,cost_center=root_image"
           except: "amazon-ebs.debian_arm64"
           context:
             - AWS-Write
