@@ -52,6 +52,7 @@ workflows:
           path: "terraform"
           workspace: << pipeline.parameters.workflow-type >>
           context: AWS-Write
+          include_output: true
           requires:
             - "Human, your approval is required (<< pipeline.parameters.workflow-type >>)"
       - teak/packer-build: &packer-build
