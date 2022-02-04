@@ -30,3 +30,8 @@ output "vm_builder_instance_profile" {
   description = "The instance profile to assign to VM building instances"
   value       = aws_iam_instance_profile.vm_builder.name
 }
+
+output "circleci_security_group_name" {
+  description = "The security group to use from CircleCI"
+  value       = aws_security_group.circleci-ssh.name
+}

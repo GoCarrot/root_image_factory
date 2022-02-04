@@ -59,6 +59,7 @@ workflows:
           version: 1.7.5
           name: "Generate Images (<< pipeline.parameters.workflow-type >>)"
           pre-steps:
+            - teak/terraform-restore-output
             - run:
                 command: sudo apt-get update && sudo apt-get install -y ansible awscli jq
             - run:
@@ -69,7 +70,7 @@ workflows:
             - store_artifacts:
                 path: "manifests/"
           path: "packer"
-          var: "region=us-east-1,environment=<< pipeline.parameters.workflow-type >>,security_group_name=CircleCI-SSHAccess"
+          var: "region=$TF_OUT_REGION,environment=$TF_OUT_ENVIRONMENT,security_group_name=$TF_OUT_CIRCLECI_SECURITY_GROUP_NAME"
           except: "amazon-ebs.debian_arm64"
           context:
             - AWS-Write
