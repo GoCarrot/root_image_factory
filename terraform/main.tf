@@ -418,16 +418,16 @@ resource "aws_ssm_parameter" "vmbuilder_role" {
   value = aws_iam_instance_profile.vm_builder.name
 }
 
-resource "aws_ssm_parameter" "connection_arn" {
-  provider = aws.admin
+# resource "aws_ssm_parameter" "connection_arn" {
+#   provider = aws.admin
 
-  name = "${local.parameter_prefix}/config/core/github_connection_arn"
-  type = "String"
+#   name = "${local.parameter_prefix}/config/core/github_connection_arn"
+#   type = "String"
 
-  description = "ARN of the CodeStar connection to our GitHub account"
+#   description = "ARN of the CodeStar connection to our GitHub account"
 
-  value = aws_codestarconnections_connection.github.arn
-}
+#   value = aws_codestarconnections_connection.github.arn
+# }
 
 resource "aws_codestarconnections_connection" "github" {
   name          = "github-connection"
