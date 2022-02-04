@@ -15,7 +15,7 @@
 version: 2.1
 
 orbs:
-  teak: teak/sdk-utils@dev:alpha
+  teak: teak/sdk-utils@0.2
   slack: circleci/slack@4
 
 parameters:
@@ -86,11 +86,5 @@ workflows:
           context: AWS
       - teak/packer-build:
           <<: *packer-build
-          pre-steps:
-            - teak/terraform-restore-output
-            - run:
-                name: "Test params"
-                command: |
-                  echo $TF_OUT_PACKER_ROLE_ARN
           requires:
             - teak/terraform-output

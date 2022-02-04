@@ -17,7 +17,7 @@ version: 2.1
 setup: true
 
 orbs:
-  teak: teak/sdk-utils@dev:alpha
+  teak: teak/sdk-utils@0.2
 
 jobs:
   setup:
