@@ -47,6 +47,15 @@
           - qemu-utils
           - udev
 
+    - name: Install ddpt
+      become: yes
+      apt:
+        update_cache: no
+        install_recommends: no
+        state: present
+        name:
+          - ddpt
+
     - name: Created Build Directory
       become: yes
       file:

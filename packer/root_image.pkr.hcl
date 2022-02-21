@@ -343,7 +343,7 @@ build {
       inline = [
         "cd /build/debian-cloud-images",
         "make image_bullseye_ec2_${arch.value}",
-        "sudo dd if=image_bullseye_ec2_${arch.value}.raw of=/dev/xvdf bs=1M"
+        "sudo ddpt if=image_bullseye_ec2_${arch.value}.raw of=/dev/xvdf bs=512 oflag=sparse verbose=2"
       ]
     }
   }
