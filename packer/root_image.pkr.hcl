@@ -71,7 +71,7 @@ variable "source_ami_name_prefix" {
 variable "vagrant_cloud_version" {
   type        = string
   description = "The version of the published vagrant box. Anything after a '-' will be removed in production."
-  default     = "11.2.2-${env("CIRCLE_WORKFLOW_ID")}"
+  default     = "11.2.3-${env("CIRCLE_WORKFLOW_ID")}"
 }
 
 variable "security_group_name" {
@@ -343,7 +343,7 @@ build {
       inline = [
         "cd /build/debian-cloud-images",
         "make image_bullseye_ec2_${arch.value}",
-        "sudo dd if=image_bullseye_ec2_${arch.value}.raw of=/dev/xvdf bs=1M"
+        "sudo ddpt if=image_bullseye_ec2_${arch.value}.raw of=/dev/xvdf bs=512 oflag=sparse verbose=2"
       ]
     }
   }
