@@ -54,8 +54,7 @@ workflows:
           requires:
             - setup
           before_continuation_steps:
-            - name: "Append our pipeline parameters"
-              run: |
+            - run: |
                 cat continue_params.json | jq --arg region '<< pipeline.parameters.region >>' '. + {region: $region}' > continue_params.json
       - teak/terraform-plan:
           <<: *terraform-plan
