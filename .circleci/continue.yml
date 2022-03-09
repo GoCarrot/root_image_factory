@@ -40,7 +40,6 @@ references:
     version: 1.7.5
     name: "Generate Images (<< pipeline.parameters.workflow-type >>)"
     pre-steps:
-      - teak/terraform-restore-output
       - run:
           command: sudo apt-get update && sudo apt-get install -y ansible awscli jq
       - run:
