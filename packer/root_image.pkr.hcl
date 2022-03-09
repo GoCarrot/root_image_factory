@@ -135,6 +135,10 @@ data "amazon-ami" "base_arm64_debian_ami" {
 }
 
 locals {
+  account_info        = jsondecode(data.amazon-parameterstore.account_info.value)
+  security_group_name = var.use_generated_security_group ? "" : data.amazon-parameterstore.security_group_name.value
+  environment         = local.account_info["environment"]
+
   timestamp = regex_replace(timestamp(), "[- TZ:]", "")
   source_ami = {
     x86_64 = data.amazon-ami.base_x86_64_debian_ami.id
@@ -142,11 +146,7 @@ locals {
   }
   arch_map = { x86_64 = "amd64", arm64 = "arm64" }
   vagrant_arch_map = local.arch_map
-  vagrant_cloud_version = var.environment == "production" ? element(split("-", var.vagrant_cloud_version), 0) : var.vagrant_cloud_version
-
-  account_info        = jsondecode(data.amazon-parameterstore.account_info.value)
-  security_group_name = var.use_generated_security_group ? "" : data.amazon-parameterstore.security_group_name.value
-  environment         = local.account_info["environment"]
+  vagrant_cloud_version = local.environment == "production" ? element(split("-", var.vagrant_cloud_version), 0) : var.vagrant_cloud_version
 }
 
 source "amazon-ebssurrogate" "debian" {
@@ -233,7 +233,7 @@ source "amazon-ebssurrogate" "debian" {
 
   tags = {
     Application = "None"
-    Environment = var.environment
+    Environment = local.environment
     CostCenter  = var.cost_center
   }
 }
