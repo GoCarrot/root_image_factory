@@ -33,6 +33,7 @@ parameters:
     default: ""
   region:
     type: string
+    default: "us-east-1"
 
 workflows:
   version: 2
