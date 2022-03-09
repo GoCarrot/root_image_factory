@@ -35,6 +35,30 @@ parameters:
     type: string
     default: "us-east-1"
 
+references:
+  packer-build: &packer-build
+    version: 1.7.5
+    name: "Generate Images (<< pipeline.parameters.workflow-type >>)"
+    pre-steps:
+      - teak/terraform-restore-output
+      - run:
+          command: sudo apt-get update && sudo apt-get install -y ansible awscli jq
+      - run:
+          command: |
+            ip=$(curl -s https://api.ipify.org)
+            echo "My public IP address is: $ip"
+    post-steps:
+      - store_artifacts:
+          path: "manifests/"
+      - store_artifacts:
+          path: "raw_manifests/"
+    path: "packer"
+    var: "region=<< pipeline.parameters.region >>,build_account_canonical_slug=<< pipeline.parameters.workflow-type >>,cost_center=root_image"
+    except: "amazon-ebs.debian_arm64"
+    context:
+      - AWS-Write
+      - Vagrant
+
 workflows:
   version: 2
   apply-and-build:
@@ -57,28 +81,8 @@ workflows:
           context: AWS-Write
           requires:
             - "Human, your approval is required (<< pipeline.parameters.workflow-type >>)"
-      - teak/packer-build: &packer-build
-          version: 1.7.5
-          name: "Generate Images (<< pipeline.parameters.workflow-type >>)"
-          pre-steps:
-            - teak/terraform-restore-output
-            - run:
-                command: sudo apt-get update && sudo apt-get install -y ansible awscli jq
-            - run:
-                command: |
-                  ip=$(curl -s https://api.ipify.org)
-                  echo "My public IP address is: $ip"
-          post-steps:
-            - store_artifacts:
-                path: "manifests/"
-            - store_artifacts:
-                path: "raw_manifests/"
-          path: "packer"
-          var: "region=<< pipeline.parameters.region >>,build_account_canonical_slug=<< pipeline.parameters.workflow-type >>,cost_center=root_image"
-          except: "amazon-ebs.debian_arm64"
-          context:
-            - AWS-Write
-            - Vagrant
+      - teak/packer-build:
+          <<: *packer-build
           requires:
             - "Apply (<< pipeline.parameters.workflow-type >>)"
   build-only:
