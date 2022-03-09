@@ -37,19 +37,35 @@ terraform {
   }
 }
 
+provider "aws" {
+  region = var.region
+  alias  = "meta_read"
+}
+
+module "current_account" {
+  source  = "GoCarrot/accountomat_read/aws"
+  version = "0.0.3"
+
+  providers = {
+    aws = aws.meta_read
+  }
+
+  canonical_slug = terraform.workspace
+}
+
 locals {
   service = "ServerImages"
 
   default_tags = {
     Managed     = "terraform"
-    Environment = terraform.workspace
+    Environment = module.current_account.environment
     CostCenter  = local.service
     Application = local.service
     Service     = local.service
   }
 
   zones            = slice(sort(data.aws_availability_zones.azs.names), 0, var.az_count)
-  parameter_prefix = "/${var.organization_prefix}/${terraform.workspace}/ci-cd"
+  parameter_prefix = module.current_account.param_prefix
 }
 
 provider "aws" {
@@ -223,7 +239,7 @@ resource "aws_route_table_association" "public_subnets" {
 resource "aws_cloudwatch_log_group" "ancillary" {
   for_each = toset(var.ancillary_log_groups)
 
-  name              = "/${var.organization_prefix}/server/${terraform.workspace}/ancillary/${each.key}"
+  name              = "/${module.current_account.organization_prefix}/server/${module.current_account.environment}/ancillary/${each.key}"
   retention_in_days = var.log_retention_days
 
   tags = {
@@ -232,7 +248,7 @@ resource "aws_cloudwatch_log_group" "ancillary" {
 }
 
 resource "aws_cloudwatch_log_group" "service" {
-  name              = "/${var.organization_prefix}/server/${terraform.workspace}/service/unknown"
+  name              = "/${module.current_account.organization_prefix}/server/${module.current_account.environment}/service/unknown"
   retention_in_days = var.log_retention_days
 
   tags = {
@@ -345,8 +361,8 @@ data "aws_iam_policy_document" "log_access" {
       "logs:DescribeLogStreams",
     ]
     resources = [
-      "arn:aws:logs:*:*:log-group:/${var.organization_prefix}/server/&{aws:PrincipalTag/Environment}/ancillary/*",
-      "arn:aws:logs:*:*:log-group:/${var.organization_prefix}/server/&{aws:PrincipalTag/Environment}/service/*",
+      "arn:aws:logs:*:*:log-group:/${module.current_account.organization_prefix}/server/&{aws:PrincipalTag/Environment}/ancillary/*",
+      "arn:aws:logs:*:*:log-group:/${module.current_account.organization_prefix}/server/&{aws:PrincipalTag/Environment}/service/*",
     ]
   }
 
@@ -368,8 +384,8 @@ data "aws_iam_policy_document" "log_access" {
       "logs:PutLogEvents"
     ]
     resources = [
-      "arn:aws:logs:*:*:log-group:/${var.organization_prefix}/server/&{aws:PrincipalTag/Environment}/ancillary/*:log-stream:*",
-      "arn:aws:logs:*:*:log-group:/${var.organization_prefix}/server/&{aws:PrincipalTag/Environment}/service/*:log-stream:*",
+      "arn:aws:logs:*:*:log-group:/${module.current_account.organization_prefix}/server/&{aws:PrincipalTag/Environment}/ancillary/*:log-stream:*",
+      "arn:aws:logs:*:*:log-group:/${module.current_account.organization_prefix}/server/&{aws:PrincipalTag/Environment}/service/*:log-stream:*",
     ]
   }
 }
