@@ -71,7 +71,7 @@ variable "source_ami_name_prefix" {
 variable "vagrant_cloud_version" {
   type        = string
   description = "The version of the published vagrant box. Anything after a '-' will be removed in production."
-  default     = "11.2.5-${env("CIRCLE_WORKFLOW_ID")}"
+  default     = "11.2.6-${env("CIRCLE_WORKFLOW_ID")}"
 }
 
 variable "use_generated_security_group" {
