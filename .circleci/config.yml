@@ -55,7 +55,8 @@ workflows:
             - setup
           before_continuation_steps:
             - run: |
-                cat continue_params.json | jq --arg region '<< pipeline.parameters.region >>' '. + {region: $region}' > continue_params.json
+                tmp=$(mktemp)
+                cat continue_params.json | jq --arg region 'us-east-1' '. + {region: $region}' > "$tmp" && mv "$tmp" continue_params.json
       - teak/terraform-plan:
           <<: *terraform-plan
           filters:
