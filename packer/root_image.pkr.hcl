@@ -418,7 +418,7 @@ build {
       inline = [
         # Parse our manifest into the format used by downstream builders
         "mkdir -p manifests",
-        "cat raw_manifests/ec2_${source.name}.json | jq --raw-output \".data.packages[] | \\\"\\(.name)$(printf \"\t\")\\(.version)\\\"\" > manifests/ec2_${source.name}.txt"
+        "cat raw_manifests/ec2_${source.name}.json | jq --raw-output \".data.packages[] | \\\"\\(.name)$(printf \"\t\")\\(.version)\\\"\" > manifests/ec2_${source.name}.txt",
         "cat raw_manifests/ec2_${source.name}.json | jq --raw-output \".data.packages[] | \\\"\\(.source_name)$(printf \"\t\")\\(.source_version)\\\"\" | sort | uniq > manifests/ec2_source_packages_${source.name}.txt"
       ]
     }
@@ -449,7 +449,7 @@ build {
         # Parse our manifest into the format used by downstream builders
         "mkdir -p manifests",
         "cat raw_manifests/vagrant_${source.name}.json | jq --raw-output \".data.packages[] | \\\"\\(.name)$(printf \"\t\")\\(.version)\\\"\" > manifests/vargrant_${source.name}.txt",
-        "cat raw_manifests/ec2_${source.name}.json | jq --raw-output \".data.packages[] | \\\"\\(.source_name)$(printf \"\t\")\\(.source_version)\\\"\" | sort | uniq > manifests/vagrant_source_packages_${source.name}.txt"
+        "cat raw_manifests/ec2_${source.name}.json | jq --raw-output \".data.packages[] | \\\"\\(.source_name)$(printf \"\t\")\\(.source_version)\\\"\" | sort | uniq > manifests/vagrant_source_packages_${source.name}.txt",
         "gunzip ${path.root}/build/vmware_bullseye_vagrant_${arch.value}.vmdk.gz",
         "cp ${path.root}/vm_configs/vagrant.vmx ${path.root}/build/vagrant_${arch.value}.vmx",
         "sed -i -e 's/^scsi0:0.fileName = DISK_IMAGE/scsi0:0.fileName = \"vmware_bullseye_vagrant_${arch.value}.vmdk\"/' ${path.root}/build/vagrant_${arch.value}.vmx"
