@@ -460,3 +460,14 @@ resource "aws_security_group" "circleci-ssh" {
     ipv6_cidr_blocks = ["::/0"]
   }
 }
+
+resource "aws_ssm_parameter" "security-group" {
+  provider = aws.admin
+
+  name = "${local.parameter_prefix}/config/${local.service}/security_group_name"
+  type = "String"
+
+  description = "Security group which allows inbound SSH from CI/CD servers."
+
+  value = aws_security_group.circleci-ssh.name
+}
