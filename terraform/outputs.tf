@@ -19,7 +19,7 @@ output "packer_role_arn" {
 }
 
 output "environment" {
-  value = terraform.workspace
+  value = module.current_account.environment
 }
 
 output "region" {

@@ -30,9 +30,9 @@ variable "region" {
   description = "AWS region to build AMIs in"
 }
 
-variable "environment" {
+variable "build_account_canonical_slug" {
   type        = string
-  description = "Value to be assigned to the Environment tag on created AMIs"
+  description = "The canonical_slug for an account as assigned by accountomat to build the AMI in."
 }
 
 variable "cost_center" {
@@ -71,31 +71,43 @@ variable "source_ami_name_prefix" {
 variable "vagrant_cloud_version" {
   type        = string
   description = "The version of the published vagrant box. Anything after a '-' will be removed in production."
-  default     = "11.2.5-${env("CIRCLE_WORKFLOW_ID")}"
+  default     = "11.2.6-${env("CIRCLE_WORKFLOW_ID")}"
 }
 
-variable "security_group_name" {
-  type        = string
-  description = "The name of the security group to attach to builder instances. Leave blank to use Packer generated security groups."
-  default     = ""
+variable "use_generated_security_group" {
+  type        = bool
+  description = "If false, will use the security group configured for the account. If true, will have packer generate a new security group for this build."
+  default     = false
+}
+
+data "amazon-parameterstore" "account_info" {
+  region = var.region
+
+  name = "/omat/account_registry/${var.build_account_canonical_slug}"
 }
 
 data "amazon-parameterstore" "role_arn" {
   region = var.region
 
-  name = "/teak/${var.environment}/ci-cd/roles/packer"
+  name = "${jsondecode(data.amazon-parameterstore.account_info.value)["prefix"]}/roles/packer"
 }
 
 data "amazon-parameterstore" "instance_profile" {
   region = var.region
 
-  name = "/teak/${var.environment}/ci-cd/config/ServerImages/instance_profile"
+  name = "${jsondecode(data.amazon-parameterstore.account_info.value)["prefix"]}/config/ServerImages/instance_profile"
 }
 
 data "amazon-parameterstore" "ami_users" {
   region = var.region
 
-  name = "/teak/${var.environment}/ci-cd/config/ServerImages/ami_consumers"
+  name = "${jsondecode(data.amazon-parameterstore.account_info.value)["prefix"]}/config/ServerImages/ami_consumers"
+}
+
+data "amazon-parameterstore" "security_group_name" {
+  region = var.region
+
+  name = "${jsondecode(data.amazon-parameterstore.account_info.value)["prefix"]}/config/ServerImages/security_group_name"
 }
 
 # Pull the latest Debian 11 AMI
@@ -123,6 +135,10 @@ data "amazon-ami" "base_arm64_debian_ami" {
 }
 
 locals {
+  account_info        = jsondecode(data.amazon-parameterstore.account_info.value)
+  security_group_name = var.use_generated_security_group ? "" : data.amazon-parameterstore.security_group_name.value
+  environment         = local.account_info["environment"]
+
   timestamp = regex_replace(timestamp(), "[- TZ:]", "")
   source_ami = {
     x86_64 = data.amazon-ami.base_x86_64_debian_ami.id
@@ -130,7 +146,7 @@ locals {
   }
   arch_map = { x86_64 = "amd64", arm64 = "arm64" }
   vagrant_arch_map = local.arch_map
-  vagrant_cloud_version = var.environment == "production" ? element(split("-", var.vagrant_cloud_version), 0) : var.vagrant_cloud_version
+  vagrant_cloud_version = local.environment == "production" ? element(split("-", var.vagrant_cloud_version), 0) : var.vagrant_cloud_version
 }
 
 source "amazon-ebssurrogate" "debian" {
@@ -148,18 +164,18 @@ source "amazon-ebssurrogate" "debian" {
   }
 
   dynamic "security_group_filter" {
-    for_each = [for s in [var.security_group_name] : s if s != ""]
+    for_each = [for s in [local.security_group_name] : s if s != ""]
 
     content {
       filters = {
-        "group-name" = var.security_group_name
+        "group-name" = local.security_group_name
       }
     }
   }
 
   run_volume_tags = {
     Managed     = "packer"
-    Environment = var.environment
+    Environment = local.environment
     CostCenter  = var.cost_center
   }
 
@@ -217,7 +233,7 @@ source "amazon-ebssurrogate" "debian" {
 
   tags = {
     Application = "None"
-    Environment = var.environment
+    Environment = local.environment
     CostCenter  = var.cost_center
   }
 }
@@ -243,18 +259,18 @@ source "amazon-ebs" "debian" {
   }
 
   dynamic "security_group_filter" {
-    for_each = [for s in [var.security_group_name] : s if s != ""]
+    for_each = [for s in [local.security_group_name] : s if s != ""]
 
     content {
       filters = {
-        "group-name" = var.security_group_name
+        "group-name" = local.security_group_name
       }
     }
   }
 
   run_volume_tags = {
     Managed     = "packer"
-    Environment = var.environment
+    Environment = local.environment
     CostCenter  = var.cost_center
   }
 
@@ -291,7 +307,7 @@ source "amazon-ebs" "debian" {
 
   tags = {
     Application = "None"
-    Environment = var.environment
+    Environment = local.environment
     CostCenter  = var.cost_center
   }
 }
@@ -304,7 +320,7 @@ build {
 
     content {
       name             = "debian_${arch.key}"
-      ami_name         = "${var.environment}_${var.ami_prefix}_${arch.key}.${local.timestamp}"
+      ami_name         = "${local.environment}_${var.ami_prefix}_${arch.key}.${local.timestamp}"
       instance_type    = var.instance_type[arch.key]
       ami_architecture = arch.key
 
@@ -319,7 +335,7 @@ build {
 
     content {
       name             = "debian_${arch.key}"
-      ami_name         = "temp-${var.environment}_${var.ami_prefix}_${arch.key}.${local.timestamp}"
+      ami_name         = "temp-${local.environment}_${var.ami_prefix}_${arch.key}.${local.timestamp}"
       instance_type    = var.instance_type[arch.key]
 
       source_ami = local.source_ami[arch.key]
@@ -329,7 +345,7 @@ build {
   provisioner "ansible" {
     playbook_file = "${path.root}/playbooks/cloud_images.yml"
     extra_arguments = [
-      "--extra-vars", "build_environment=${var.environment}"
+      "--extra-vars", "build_environment=${local.environment}"
     ]
   }
 
@@ -402,7 +418,8 @@ build {
       inline = [
         # Parse our manifest into the format used by downstream builders
         "mkdir -p manifests",
-        "cat raw_manifests/ec2_${source.name}.json | jq --raw-output \".data.packages[] | \\\"\\(.name)$(printf \"\t\")\\(.version)\\\"\" > manifests/ec2_${source.name}.txt"
+        "cat raw_manifests/ec2_${source.name}.json | jq --raw-output \".data.packages[] | \\\"\\(.name)$(printf \"\t\")\\(.version)\\\"\" > manifests/ec2_${source.name}.txt",
+        "cat raw_manifests/ec2_${source.name}.json | jq --raw-output \".data.packages[] | \\\"\\(.source_name)$(printf \"\t\")\\(.source_version)\\\"\" | sort | uniq > manifests/ec2_source_packages_${source.name}.txt"
       ]
     }
   }
@@ -432,6 +449,7 @@ build {
         # Parse our manifest into the format used by downstream builders
         "mkdir -p manifests",
         "cat raw_manifests/vagrant_${source.name}.json | jq --raw-output \".data.packages[] | \\\"\\(.name)$(printf \"\t\")\\(.version)\\\"\" > manifests/vargrant_${source.name}.txt",
+        "cat raw_manifests/ec2_${source.name}.json | jq --raw-output \".data.packages[] | \\\"\\(.source_name)$(printf \"\t\")\\(.source_version)\\\"\" | sort | uniq > manifests/vagrant_source_packages_${source.name}.txt",
         "gunzip ${path.root}/build/vmware_bullseye_vagrant_${arch.value}.vmdk.gz",
         "cp ${path.root}/vm_configs/vagrant.vmx ${path.root}/build/vagrant_${arch.value}.vmx",
         "sed -i -e 's/^scsi0:0.fileName = DISK_IMAGE/scsi0:0.fileName = \"vmware_bullseye_vagrant_${arch.value}.vmdk\"/' ${path.root}/build/vagrant_${arch.value}.vmx"
@@ -466,7 +484,7 @@ build {
         box_tag = "teak/bullseye_${arch.key}"
         version = local.vagrant_cloud_version
 
-        no_release = var.environment != "production"
+        no_release = local.environment != "production"
       }
     }
   }
