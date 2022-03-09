@@ -69,6 +69,8 @@ workflows:
           post-steps:
             - store_artifacts:
                 path: "manifests/"
+            - store_artifacts:
+                path: "raw_manifests/"
           path: "packer"
           var: "region=$TF_OUT_REGION,build_account_canonical_slug=<< pipeline.parameters.workflow-type >>,cost_center=root_image"
           except: "amazon-ebs.debian_arm64"
