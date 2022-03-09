@@ -31,6 +31,8 @@ parameters:
   plan-log-url:
     type: string
     default: ""
+  region:
+    type: string
 
 workflows:
   version: 2
@@ -52,7 +54,6 @@ workflows:
           path: "terraform"
           workspace: << pipeline.parameters.workflow-type >>
           context: AWS-Write
-          include_output: true
           requires:
             - "Human, your approval is required (<< pipeline.parameters.workflow-type >>)"
       - teak/packer-build: &packer-build
@@ -72,7 +73,7 @@ workflows:
             - store_artifacts:
                 path: "raw_manifests/"
           path: "packer"
-          var: "region=$TF_OUT_REGION,build_account_canonical_slug=<< pipeline.parameters.workflow-type >>,cost_center=root_image"
+          var: "region=<< pipeline.parameters.region >>,build_account_canonical_slug=<< pipeline.parameters.workflow-type >>,cost_center=root_image"
           except: "amazon-ebs.debian_arm64"
           context:
             - AWS-Write
@@ -83,11 +84,5 @@ workflows:
     when:
       not: << pipeline.parameters.run-apply >>
     jobs:
-      - teak/terraform-output:
-          path: "terraform"
-          workspace: << pipeline.parameters.workflow-type >>
-          context: AWS
       - teak/packer-build:
           <<: *packer-build
-          requires:
-            - teak/terraform-output

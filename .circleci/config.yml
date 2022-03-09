@@ -16,6 +16,11 @@ version: 2.1
 
 setup: true
 
+parameters:
+  region:
+    type: string
+    default: us-east-1
+
 orbs:
   teak: teak/sdk-utils@0.2
 
@@ -44,9 +49,14 @@ workflows:
           path: "terraform"
           workspace: "development-ci-cd"
           continuation_workflow_type: "development-ci-cd"
+          var: "region=<< pipeline.parameters.region >>"
           context: AWS-Write
           requires:
             - setup
+          before_continuation_steps:
+            - name: "Append our pipeline parameters"
+              run: |
+                cat continue_params.json | jq --arg region '<< pipeline.parameters.region >>' '. + {region: $region}' > continue_params.json
       - teak/terraform-plan:
           <<: *terraform-plan
           filters:
