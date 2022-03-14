@@ -94,6 +94,9 @@ workflows:
           region: << pipeline.parameters.region >>
           build_account_slug: << pipeline.parameters.build_account_slug >>
           ami_name_prefix: "root"
+          context:
+            - AWS
+            - CircleCI
   build-only:
     when:
       not: << pipeline.parameters.run-apply >>
