@@ -59,6 +59,7 @@ references:
       - run:
           name: "Rebuild dependents"
           command: |
+            export AWS_DEFAULT_REGION=<< pipeline.parameters.region >>
             PREFIX=$(aws ssm get-parameter --name /omat/account_registry/<< pipeline.parameters.build_account_slug >> --output text --query Parameter.Value | jq -r '.prefix')
             DEPENDENTS=$(aws ssm get-parameters-by-path --path ${PREFIX}/config/image_factories/root/dependents --recursive --query 'Parameters[*].Value')
             API_CALLS=$(echo $DEPENDENTS |  jq -r 'map(fromjson) | map({url: "https://circleci.com/api/v2/project/\(.project_slug)/pipeline", data: ({branch: .branch, parameters: {in_build_account_slug: .build_account, in_deploy_account_slug: (.deploy_account // "")}} | tojson | @sh)}) | map("curl -XPOST --data \(.data) -H \"Content-Type: application/json\" -H \("Circle-Token: \($ENV.CIRCLE_TOKEN)" | @sh) \(.url)") | join("\n")')
@@ -72,6 +73,7 @@ references:
     context:
       - AWS-Write
       - Vagrant
+      - CircleCI
 
 workflows:
   version: 2
