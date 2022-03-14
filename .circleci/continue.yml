@@ -56,6 +56,17 @@ references:
           path: "manifests/"
       - store_artifacts:
           path: "raw_manifests/"
+      - run:
+          name: "Rebuild dependents"
+          command: |
+            PREFIX=$(aws ssm get-parameter --name /omat/account_registry/<< pipeline.parameters.build_account_slug >> --output text --query Parameter.Value | jq -r '.prefix')
+            DEPENDENTS=$(aws ssm get-parameters-by-path --path ${PREFIX}/config/image_factories/root/dependents --recursive --query 'Parameters[*].Value')
+            API_CALLS=$(echo $DEPENDENTS |  jq -r 'map(fromjson) | map({url: "https://circleci.com/api/v2/project/\(.project_slug)/pipeline", data: ({branch: .branch, parameters: {in_build_account_slug: .build_account, in_deploy_account_slug: (.deploy_account // "")}} | tojson | @sh)}) | map("curl -XPOST --data \(.data) -H \"Content-Type: application/json\" -H \("Circle-Token: \($ENV.CIRCLE_TOKEN)" | @sh) \(.url)") | join("\n")')
+            IFS=$'\n' API_CALLS=($(echo $API_CALLS))
+            for api_call in $API_CALLS; do
+              echo $api_call
+              eval $api_call
+            done
     path: "packer"
     var: "region=<< pipeline.parameters.region >>,build_account_canonical_slug=<< pipeline.parameters.build_account_slug >>,cost_center=root_image"
     context:
