@@ -40,7 +40,9 @@ parameters:
 
 references:
   packer-build: &packer-build
-    version: 1.7.5
+    version: 1.7.5-dev2
+    github_releases_user: AlexSc
+    gpg_key_id: EC3A3F7C6C4F9D25
     name: "Generate Images (<< pipeline.parameters.build_account_slug >>)"
     pre-steps:
       - run:
@@ -75,6 +77,7 @@ workflows:
           requires:
             - teak/terraform-slack-on-hold
       - teak/terraform-apply:
+          version: 1.1.7
           name: "Apply (<< pipeline.parameters.workspace >>)"
           continuation_cache: << pipeline.parameters.continuation-cache-id >>
           path: "terraform"
