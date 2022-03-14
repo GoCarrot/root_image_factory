@@ -15,17 +15,17 @@
 version: 2.1
 
 orbs:
-  teak: teak/sdk-utils@0.2
+  teak: teak/sdk-utils@0.5
   slack: circleci/slack@4
 
 parameters:
   run-apply:
     type: boolean
     default: false
-  cache-id:
+  continuation-cache-id:
     type: string
     default: ""
-  workflow-type:
+  workspace:
     type: string
     default: ""
   plan-log-url:
@@ -34,11 +34,14 @@ parameters:
   region:
     type: string
     default: "us-east-1"
+  build_account_slug:
+    type: string
+    default: ""
 
 references:
   packer-build: &packer-build
     version: 1.7.5
-    name: "Generate Images (<< pipeline.parameters.workflow-type >>)"
+    name: "Generate Images (<< pipeline.parameters.build_account_slug >>)"
     pre-steps:
       - run:
           command: sudo apt-get update && sudo apt-get install -y ansible awscli jq
@@ -52,7 +55,7 @@ references:
       - store_artifacts:
           path: "raw_manifests/"
     path: "packer"
-    var: "region=<< pipeline.parameters.region >>,build_account_canonical_slug=<< pipeline.parameters.workflow-type >>,cost_center=root_image"
+    var: "region=<< pipeline.parameters.region >>,build_account_canonical_slug=<< pipeline.parameters.build_account_slug >>,cost_center=root_image"
     context:
       - AWS-Write
       - Vagrant
@@ -67,22 +70,22 @@ workflows:
           context:
             - Slack
       - hold:
-          name: "Human, your approval is required (<< pipeline.parameters.workflow-type >>)"
+          name: "Human, your approval is required (<< pipeline.parameters.workspace >>)"
           type: approval
           requires:
             - teak/terraform-slack-on-hold
       - teak/terraform-apply:
-          name: "Apply (<< pipeline.parameters.workflow-type >>)"
-          continuation_cache: << pipeline.parameters.cache-id >>
+          name: "Apply (<< pipeline.parameters.workspace >>)"
+          continuation_cache: << pipeline.parameters.continuation-cache-id >>
           path: "terraform"
-          workspace: << pipeline.parameters.workflow-type >>
+          workspace: << pipeline.parameters.workspace >>
           context: AWS-Write
           requires:
-            - "Human, your approval is required (<< pipeline.parameters.workflow-type >>)"
+            - "Human, your approval is required (<< pipeline.parameters.workspace >>)"
       - teak/packer-build:
           <<: *packer-build
           requires:
-            - "Apply (<< pipeline.parameters.workflow-type >>)"
+            - "Apply (<< pipeline.parameters.workspace >>)"
   build-only:
     when:
       not: << pipeline.parameters.run-apply >>

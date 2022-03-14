@@ -22,7 +22,7 @@ parameters:
     default: us-east-1
 
 orbs:
-  teak: teak/sdk-utils@0.2
+  teak: teak/sdk-utils@0.5
 
 jobs:
   setup:
@@ -48,8 +48,9 @@ workflows:
           name: "Plan (Development)"
           path: "terraform"
           workspace: "development-ci-cd"
-          continuation_workflow_type: "development-ci-cd"
+          continuation: true
           var: "region=<< pipeline.parameters.region >>"
+          continuation_parameters: "region=<< pipeline.parameters.region >>,build_account_slug=development-ci-cd"
           context: AWS-Write
           requires:
             - setup
@@ -58,7 +59,7 @@ workflows:
                 name: "Add our pipeline parameters to continuation"
                 command: |
                   tmp=$(mktemp)
-                  cat continue_params.json | jq --arg region 'us-east-1' '. + {region: $region}' > "$tmp" && mv "$tmp" continue_params.json
+                  cat continue_params.json | jq --arg region '<< pipeline.parameters.region >>' '. + {region: $region}' > "$tmp" && mv "$tmp" continue_params.json
       - teak/terraform-plan:
           <<: *terraform-plan
           filters:
@@ -67,4 +68,4 @@ workflows:
                 - main
           name: "Plan (Production)"
           workspace: "production-ci-cd"
-          continuation_workflow_type: "production-ci-cd"
+          continuation_parameters: "region=<< pipeline.parameters.region >>,build_account_slug=production-ci-cd"
