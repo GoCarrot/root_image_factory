@@ -100,6 +100,7 @@ provider "aws" {
 
   assume_role {
     role_arn = data.aws_ssm_parameter.role_arn.value
+    external_id = var.external_id
   }
 }
 
@@ -311,6 +312,16 @@ data "aws_iam_policy_document" "packer_assume_role" {
       identifiers = [
         "arn:aws:iam::${data.aws_caller_identity.admin.account_id}:root"
       ]
+    }
+
+    dynamic "condition" {
+      for_each = var.external_id != null ? [1] : []
+
+      content {
+        test     = "StringEquals"
+        variable = "sts:ExternalId"
+        values   = [var.external_id]
+      }
     }
   }
 }
