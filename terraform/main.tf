@@ -343,7 +343,6 @@ resource "aws_iam_role_policy_attachment" "packer_attach" {
   policy_arn = aws_iam_policy.packer.arn
 }
 
-
 data "aws_ssm_parameter" "ami_consumers" {
   provider = aws.admin
 
