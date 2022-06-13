@@ -41,3 +41,9 @@ variable "ancillary_log_groups" {
   type        = list(string)
   default     = ["fluentd", "systemd", "cloudinit", "configurator", "newrelic-infra"]
 }
+
+variable "external_id" {
+  description = "The ExternalId used for assuming roles during deployment."
+  type        = string
+  default     = null
+}
