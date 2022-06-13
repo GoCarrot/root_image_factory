@@ -45,4 +45,5 @@ variable "ancillary_log_groups" {
 variable "external_id" {
   description = "The ExternalId used for assuming roles during deployment."
   type        = string
+  default     = null
 }
