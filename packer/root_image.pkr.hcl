@@ -361,6 +361,8 @@ build {
     extra_arguments = [
       "--extra-vars", "build_environment=${local.environment}"
     ]
+
+    use_proxy = false
   }
 
   dynamic "provisioner" {
