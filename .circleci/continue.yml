@@ -40,17 +40,11 @@ parameters:
 
 references:
   packer-build: &packer-build
+    image: teakinc/ansible:current
     version: 1.7.5-dev2
     github_releases_user: AlexSc
     gpg_key_id: EC3A3F7C6C4F9D25
     name: "Generate Images (<< pipeline.parameters.build_account_slug >>)"
-    pre-steps:
-      - run:
-          command: sudo apt-get update && sudo apt-get install -y ansible awscli jq
-      - run:
-          command: |
-            ip=$(curl -s https://api.ipify.org)
-            echo "My public IP address is: $ip"
     post-steps:
       - store_artifacts:
           path: "manifests/"
