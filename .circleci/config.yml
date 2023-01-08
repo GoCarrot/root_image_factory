@@ -22,32 +22,26 @@ parameters:
     default: us-east-1
 
 orbs:
-  teak: teak/sdk-utils@0.5
+  buildomat: teak/buildomat@0.1
 
 workflows:
   version: 2
   terraform-plan:
     jobs:
-      - teak/terraform-plan: &terraform-plan
+      - buildomat/terraform-plan: &terraform-plan
           filters:
             branches:
               only:
                 - develop
-          version: 1.1.7
+          version: 1.3.6
           name: "Plan (Development)"
           path: "terraform"
           workspace: "development-ci-cd"
           continuation: true
           var: "region=<< pipeline.parameters.region >>"
           continuation_parameters: "region=<< pipeline.parameters.region >>,build_account_slug=development-ci-cd"
-          context: AWS-Write
-          before_continuation_steps:
-            - run:
-                name: "Add our pipeline parameters to continuation"
-                command: |
-                  tmp=$(mktemp)
-                  cat continue_params.json | jq --arg region '<< pipeline.parameters.region >>' '. + {region: $region}' > "$tmp" && mv "$tmp" continue_params.json
-      - teak/terraform-plan:
+          context: AWS-OIDC-Assume
+      - buildomat/terraform-plan:
           <<: *terraform-plan
           filters:
             branches:
@@ -56,3 +50,19 @@ workflows:
           name: "Plan (Production)"
           workspace: "production-ci-cd"
           continuation_parameters: "region=<< pipeline.parameters.region >>,build_account_slug=production-ci-cd"
+      - buildomat/terraform-continuation:
+          filters:
+            branches:
+              only:
+                - develop
+          name: "Continue (Development)"
+          requires:
+            - "Plan (Development)"
+      - buildomat/terraform-continuation:
+          filters:
+            branches:
+              only:
+                - main
+          name: "Continue (Production)"
+          requires:
+            - "Plan (Production)"
