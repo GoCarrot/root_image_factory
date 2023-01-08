@@ -40,7 +40,7 @@ workflows:
           continuation: true
           var: "region=<< pipeline.parameters.region >>"
           continuation_parameters: "region=<< pipeline.parameters.region >>,build_account_slug=development-ci-cd"
-          context: AWS-OIDC-Assume
+          context: AWS-OIDC-Role
       - buildomat/terraform-plan:
           <<: *terraform-plan
           filters:
