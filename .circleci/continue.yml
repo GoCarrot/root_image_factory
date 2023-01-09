@@ -15,7 +15,7 @@
 version: 2.1
 
 orbs:
-  teak: teak/sdk-utils@0.5
+  buildomat: teak/buildomat@0.1
   slack: circleci/slack@4
 
 parameters:
@@ -40,17 +40,11 @@ parameters:
 
 references:
   packer-build: &packer-build
+    image: teakinc/ansible:current
     version: 1.7.5-dev2
     github_releases_user: AlexSc
     gpg_key_id: EC3A3F7C6C4F9D25
     name: "Generate Images (<< pipeline.parameters.build_account_slug >>)"
-    pre-steps:
-      - run:
-          command: sudo apt-get update && sudo apt-get install -y ansible awscli jq
-      - run:
-          command: |
-            ip=$(curl -s https://api.ipify.org)
-            echo "My public IP address is: $ip"
     post-steps:
       - store_artifacts:
           path: "manifests/"
@@ -59,7 +53,7 @@ references:
     path: "packer"
     var: "region=<< pipeline.parameters.region >>,build_account_canonical_slug=<< pipeline.parameters.build_account_slug >>,cost_center=root_image"
     context:
-      - AWS-Write
+      - AWS-OIDC-Role
       - Vagrant
       - CircleCI
 
@@ -68,7 +62,7 @@ workflows:
   apply-and-build:
     when: << pipeline.parameters.run-apply >>
     jobs:
-      - teak/terraform-slack-on-hold:
+      - buildomat/terraform-slack-on-hold:
           plan-log-url: << pipeline.parameters.plan-log-url >>
           context:
             - Slack
@@ -76,34 +70,34 @@ workflows:
           name: "Human, your approval is required (<< pipeline.parameters.workspace >>)"
           type: approval
           requires:
-            - teak/terraform-slack-on-hold
-      - teak/terraform-apply:
-          version: 1.1.7
+            - buildomat/terraform-slack-on-hold
+      - buildomat/terraform-apply:
+          version: 1.3.6
           name: "Apply (<< pipeline.parameters.workspace >>)"
           continuation_cache: << pipeline.parameters.continuation-cache-id >>
           path: "terraform"
           workspace: << pipeline.parameters.workspace >>
-          context: AWS-Write
+          context: AWS-OIDC-Role
           requires:
             - "Human, your approval is required (<< pipeline.parameters.workspace >>)"
-      - teak/packer-build:
+      - buildomat/packer-build:
           <<: *packer-build
           requires:
             - "Apply (<< pipeline.parameters.workspace >>)"
-      - teak/build-dependent-images: &build-depdendent-images
+      - buildomat/build-dependent-images: &build-depdendent-images
           region: << pipeline.parameters.region >>
           build_account_slug: << pipeline.parameters.build_account_slug >>
           ami_name_prefix: "root"
           requires:
             - "Generate Images (<< pipeline.parameters.build_account_slug >>)"
           context:
-            - AWS
+            - AWS-OIDC-Role
             - CircleCI
   build-only:
     when:
       not: << pipeline.parameters.run-apply >>
     jobs:
-      - teak/packer-build:
+      - buildomat/packer-build:
           <<: *packer-build
-      - teak/build-dependent-images:
+      - buildomat/build-dependent-images:
           <<: *build-depdendent-images
