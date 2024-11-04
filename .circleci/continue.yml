@@ -41,6 +41,7 @@ parameters:
 references:
   packer-build: &packer-build
     image: teakinc/ansible:current
+    except: vagrant.*,amazon-ebs.*
     version: 1.7.5-dev2
     github_releases_user: AlexSc
     gpg_key_id: EC3A3F7C6C4F9D25
