@@ -25,6 +25,13 @@
         - "vars_default.yml"
 
   tasks:
+    - name: Remove backports
+      become: yes
+      lineinfile: 
+        dest: /etc/apt/sources.list
+        state: absent 
+        regexp: "backports"
+
     - name:  Install FAI Packages
       become: yes
       apt:
