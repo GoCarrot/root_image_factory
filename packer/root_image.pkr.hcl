@@ -65,13 +65,13 @@ variable "source_ami_owners" {
 variable "source_ami_name_prefix" {
   type        = string
   description = "The AMI name prefix for AMIs that we use to run the root image builds."
-  default     = "debian-11-"
+  default     = "debian-11-a"
 }
 
 variable "vagrant_cloud_version" {
   type        = string
   description = "The version of the published vagrant box. Anything after a '-' will be removed in production."
-  default     = "11.11.3-${env("CIRCLE_WORKFLOW_ID")}"
+  default     = "11.11.4-${env("CIRCLE_WORKFLOW_ID")}"
 }
 
 variable "use_generated_security_group" {
