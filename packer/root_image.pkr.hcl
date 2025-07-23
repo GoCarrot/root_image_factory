@@ -44,8 +44,8 @@ variable "cost_center" {
 variable "instance_type" {
   type = map(string)
   default = {
-    x86_64 = "m5.large"
-    arm64  = "m6g.large"
+    x86_64 = "m7i.large"
+    arm64  = "m8g.large"
   }
   description = "Instance type to use for building AMIs by architecture"
 }
