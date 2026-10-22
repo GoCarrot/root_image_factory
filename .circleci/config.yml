@@ -53,6 +53,7 @@ references:
       - AWS-OIDC-Role
       - Vagrant
       - CircleCI
+      - GitHub-ReadOnly
 
 workflows:
   version: 2
