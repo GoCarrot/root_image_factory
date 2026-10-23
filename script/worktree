@@ -1,0 +1,130 @@
+#!/bin/bash
+set -e
+
+# script/worktree — Create a git worktree with local dev setup
+#
+# Usage:
+#   script/worktree <branch> [--from <base>] [path]
+#
+# Examples:
+#   script/worktree feat/my-feature                        # branch off HEAD
+#   script/worktree feat/my-feature --from develop         # fetch & branch off develop
+#   script/worktree fix/bug-123 --from develop ~/custom    # explicit path + base
+
+if [ -z "$1" ]; then
+  echo "Usage: script/worktree <branch> [--from <base>] [path]"
+  echo ""
+  echo "  branch       Branch name to create or check out (e.g. feat/my-feature)"
+  echo "  --from base  Base branch to branch from (fetches and fast-forwards first)"
+  echo "  path         Worktree path (default: sibling of main repo)"
+  exit 1
+fi
+
+branch="$1"
+shift
+
+base=""
+worktree_path=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --from)
+      base="$2"
+      shift 2
+      ;;
+    *)
+      worktree_path="$1"
+      shift
+      ;;
+  esac
+done
+
+# Always derive sibling paths from the main worktree so naming is consistent
+# regardless of which worktree you run this from.
+main_tree="$(git worktree list --porcelain | head -1 | sed 's/worktree //')"
+base_name="$(basename "$main_tree")"
+
+if [ -z "$worktree_path" ]; then
+  sanitized_branch="$(echo "$branch" | tr '/' '-')"
+  worktree_path="$(dirname "$main_tree")/${base_name}-${sanitized_branch}"
+fi
+
+# --- Resolve the base commit ---
+
+start_point=""
+if [ -n "$base" ]; then
+  echo "Fetching origin/$base..."
+  git fetch origin "$base"
+
+  # Try to fast-forward the local branch (works if not checked out elsewhere)
+  if git fetch origin "$base:$base" 2>/dev/null; then
+    echo "Fast-forwarded local $base"
+  else
+    echo "Could not fast-forward local $base (may be checked out), using origin/$base"
+  fi
+
+  start_point="origin/$base"
+fi
+
+echo ""
+echo "Creating worktree:"
+echo "  Path:   $worktree_path"
+echo "  Branch: $branch"
+if [ -n "$base" ]; then
+  echo "  Base:   $start_point"
+fi
+echo ""
+
+# Create the worktree — use existing branch if it exists, otherwise create it
+if git show-ref --verify --quiet "refs/heads/$branch"; then
+  git worktree add "$worktree_path" "$branch"
+else
+  if [ -n "$start_point" ]; then
+    git worktree add -b "$branch" "$worktree_path" "$start_point"
+  else
+    git worktree add -b "$branch" "$worktree_path"
+  fi
+fi
+
+# --- Copy local config from main worktree ---
+
+if [ -f "$main_tree/.env" ]; then
+  cp "$main_tree/.env" "$worktree_path/.env"
+  echo "Copied .env"
+fi
+
+if [ -f "$main_tree/.claude/settings.local.json" ]; then
+  mkdir -p "$worktree_path/.claude"
+  cp "$main_tree/.claude/settings.local.json" "$worktree_path/.claude/settings.local.json"
+  echo "Copied .claude/settings.local.json"
+fi
+
+# --- Dependencies ---
+
+# Node via nvm (only if the repo pins a node version)
+if [ -f "$worktree_path/.nvmrc" ] && [ -d "${NVM_DIR:-$HOME/.nvm}" ]; then
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  . "$NVM_DIR/nvm.sh"
+  echo "Setting up Node..."
+  (cd "$worktree_path" && nvm use)
+fi
+
+# Ruby dependencies
+if [ -f "$worktree_path/Gemfile" ]; then
+  echo "Installing Ruby dependencies..."
+  (cd "$worktree_path" && bundle install)
+fi
+
+# JS dependencies
+if [ -f "$worktree_path/package.json" ]; then
+  if [ -f "$worktree_path/yarn.lock" ]; then
+    echo "Installing JS dependencies (yarn)..."
+    (cd "$worktree_path" && yarn install)
+  else
+    echo "Installing JS dependencies (npm)..."
+    (cd "$worktree_path" && npm install)
+  fi
+fi
+
+echo ""
+echo "Worktree ready at: $worktree_path"
+echo "  cd $worktree_path"

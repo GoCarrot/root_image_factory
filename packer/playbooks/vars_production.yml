@@ -13,4 +13,4 @@
 # limitations under the License.
 
 ---
-debian_cloud_images_branch: master
+debian_cloud_images_branch: develop
