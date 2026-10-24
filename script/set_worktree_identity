@@ -1,0 +1,33 @@
+#!/bin/bash
+set -e
+
+# script/set_worktree_identity <main-tree> <worktree-path>
+#
+# Every worktree shares one .git/config by default, so a bare `git config
+# user.email` run inside a worktree would rewrite identity in the main
+# checkout (and every other worktree) too. `--worktree` scopes the write to
+# this worktree's own config.worktree file instead, but git refuses
+# `--worktree` until extensions.worktreeConfig is enabled on the repo, so
+# that has to happen first.
+
+if [ -z "$1" ] || [ -z "$2" ]; then
+  echo "Usage: script/set_worktree_identity <main-tree> <worktree-path>"
+  exit 1
+fi
+
+main_tree="$1"
+worktree_path="$2"
+
+# worktree-path must be a linked worktree, not the main one -- a main tree's
+# git-dir and common-dir are the same path, a linked worktree's differ.
+# Getting this wrong means changing identity in the main checkout, exactly
+# what --worktree exists to avoid.
+if [ "$(git -C "$worktree_path" rev-parse --absolute-git-dir)" \
+   = "$(git -C "$worktree_path" rev-parse --path-format=absolute --git-common-dir)" ]; then
+  echo "Refusing: $worktree_path is the main worktree, not a linked one" >&2
+  exit 1
+fi
+
+git -C "$main_tree" config extensions.worktreeConfig true
+git -C "$worktree_path" config --worktree user.name "teakie"
+git -C "$worktree_path" config --worktree user.email "teakie@gocarrot.com"
